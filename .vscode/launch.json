@@ -11,9 +11,19 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/compressor/bin/Debug/netcoreapp3.1/compressor.dll",
-            "args": ["compress", ".\\mal64.log", ".\\mal64.log.gzip"],
-            //"args": ["compress", ".\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip", ".\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.gzip"],
-            //"args": ["decompress", ".\\mal64.log.gzip", ".\\mal64.log.gzip.log"],
+            
+            "args": ["compress", "..\\debugdata\\test.txt", "..\\debugdata\\test.txt.arc"],
+            //"args": ["decompress", "..\\debugdata\\test.txt.arc", "..\\debugdata\\test.txt.unarc"],
+            
+            //"args": ["compress", "..\\debugdata\\mal64.log", "..\\debugdata\\mal64.log.arc"],
+            //"args": ["decompress", "..\\debugdata\\mal64.log.arc", "..\\debugdata\\mal64.log.unarc"],
+            
+            //"args": ["compress", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.arc"],
+            //"args": ["decompress", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.arc", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.unarc"],
+            
+            //"args": ["compress", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip", "C:\\Users\\akrivos1\\Downloads\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.arc"],
+            //"args": ["decompress", "C:\\Users\\akrivos1\\Downloads\\Ex2k10-EDB-3Mbx-40kMsg-RealData.zip.arc", "..\\debugdata\\Ex2k10-EDB-3Mbx-40kMsg-RealData.unarc"],
+            
             "cwd": "${workspaceFolder}/compressor",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",

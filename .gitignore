@@ -1,3 +1,6 @@
-debugdata/**/*
 **/obj/
 **/bin/
+
+!debugdata/
+debugdata/*
+!debugdata/Test.txt
