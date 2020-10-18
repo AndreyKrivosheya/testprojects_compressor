@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.IO;
-using System.IO.Compression;
 
 namespace compressor
 {
@@ -24,10 +23,29 @@ namespace compressor
             {
                 using(var inStream = new FileStream(pathIn, FileMode.Open))
                 {
-                    using(var outStream = new FileStream(pathOut, System.IO.FileMode.OpenOrCreate))
+                    Stream outStream = null;
+                    try
                     {
+                        try
+                        {
+                            outStream = new FileStream(pathOut, FileMode.Open);
+                            outStream.SetLength(0);
+                        }
+                        catch(FileNotFoundException)
+                        {
+                            outStream = new FileStream(pathOut, FileMode.CreateNew);
+                        }
+                    
                         new Processor<TaskFactoryReadWrite, TaskFactoryCompressDecompress>(
                             new SettingsProviderFromEnvironment(), inStream, outStream).Run();
+                    }
+                    finally
+                    {
+                        if(outStream != null)
+                        {
+                            outStream.Dispose();
+                            outStream = null;
+                        }
                     }
                 }
             }

@@ -4,6 +4,6 @@ namespace compressor
 {
     interface ICompressorDecompressorFactory
     {
-        Func<ProcessorQueueBlock, ProcessorQueueBlock> Create();
+        Func<ProcessorQueueBlockToProcess, ProcessorQueueBlockToWrite> Create();
     }
 }

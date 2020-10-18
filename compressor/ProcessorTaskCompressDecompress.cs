@@ -5,46 +5,48 @@ namespace compressor
 {
     abstract class ProcessorTaskCompressDescompress: ProcessorTask
     {
-        protected ProcessorTaskCompressDescompress(ISettingsProvider settings, Func<ProcessorQueueBlock, ProcessorQueueBlock> processor)
+        protected ProcessorTaskCompressDescompress(ISettingsProvider settings, Func<ProcessorQueueBlockToProcess, ProcessorQueueBlockToWrite> processor)
             : base(settings)
         {
             this.Processor = processor;
         }
 
-        readonly Func<ProcessorQueueBlock, ProcessorQueueBlock> Processor;
+        readonly Func<ProcessorQueueBlockToProcess, ProcessorQueueBlockToWrite> Processor;
 
         bool ProcessingCompleted;
-        ProcessorQueueBlock ProcessingData;
-        bool? ProcessPendingAddToQueue(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        ProcessorQueueBlockToWrite ProcessingData;
+        bool? ProcessPendingAddToQueue(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            try
+            if(ProcessingData.WaitAllPreviousBlocksAddedToQueue(Timeout.Infinite, CancellationTokenSource.Token))
             {
-                if(queueToWrite.TryAdd(ProcessingData, Timeout.Infinite, CancellationTokenSource.Token))
+                try
                 {
-                    ProcessingData = null;
-                    return false;
+                    if(queueToWrite.TryAdd(ProcessingData, Timeout.Infinite, CancellationTokenSource.Token))
+                    {
+                        ProcessingData = null;
+                        return false;
+                    }
+                }
+                catch(InvalidOperationException)
+                {
+                    if(queueToWrite.IsAddingCompleted)
+                    {
+                        // something wrong: queue-to-write is closed for additions, but there's block outstanding
+                        // probably there's an exception on another worker thread
+                        ProcessingCompleted = true;
+                        ProcessingData = null;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
-            catch(InvalidOperationException)
-            {
-                if(queueToWrite.IsAddingCompleted)
-                {
-                    // something wrong: queue-to-write is closed for additions, but there's block outstanding
-                    // probably there's an exception on another worker thread
-                    ProcessingCompleted = true;
-                    ProcessingData = null;
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
             return null;
         }
-        bool? ProcessPendingNextBlockIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingNextBlockIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            ProcessorQueueBlock blockToProcess = null;
+            ProcessorQueueBlockToProcess blockToProcess = null;
             bool taken = false;
             try
             {
@@ -79,7 +81,7 @@ namespace compressor
 
             return null;
         } 
-        public sealed override bool? RunOnce(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        public sealed override bool? RunOnce(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!ProcessingCompleted || ProcessingData != null)
             {

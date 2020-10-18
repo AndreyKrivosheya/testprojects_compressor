@@ -4,7 +4,7 @@ namespace compressor
 {
     class CompressorDecompressorFactoryDecompress: ICompressorDecompressorFactory
     {
-        public Func<ProcessorQueueBlock, ProcessorQueueBlock> Create()
+        public Func<ProcessorQueueBlockToProcess, ProcessorQueueBlockToWrite> Create()
         {
             return ProcessorTaskDecompress.DecompressBlock;
         }

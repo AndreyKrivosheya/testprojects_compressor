@@ -41,9 +41,9 @@ namespace compressor
             }
              
         }
-        public static ProcessorQueueBlock CompressBlock(ProcessorQueueBlock block)
+        public static ProcessorQueueBlockToWrite CompressBlock(ProcessorQueueBlockToProcess block)
         {
-            return new ProcessorQueueBlock(block, CompressData(block.Data));
+            return new ProcessorQueueBlockToWrite(block, CompressData(block.Data));
         }
     }
 }

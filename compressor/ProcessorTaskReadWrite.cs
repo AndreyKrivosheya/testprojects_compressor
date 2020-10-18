@@ -26,7 +26,7 @@ namespace compressor
             RunIdleSleep(1000);
         }
 
-        public override void Run(ProcessorQueue quequeToProcess, ProcessorQueue queueToWrite)
+        public override void Run(ProcessorQueueToProcess quequeToProcess, ProcessorQueueToWrite queueToWrite)
         {
             try
             {
@@ -39,39 +39,42 @@ namespace compressor
         }
 
         protected bool WritingCompleted = false;
-        protected abstract bool? ProcessPendingWriteIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite);
+        protected abstract bool? ProcessPendingWriteIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite);
 
-        protected bool ProcessingCompleted = false;
-        ProcessorQueueBlock ProcessingData;
-        protected abstract ProcessorQueueBlock CompressDecompressBlock(ProcessorQueueBlock data);
-        bool? ProcessPendingCompressDecompressAddToQueue(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool ProcessingCompleted = false;
+        ProcessorQueueBlockToWrite ProcessingData;
+        protected abstract ProcessorQueueBlockToWrite CompressDecompressBlock(ProcessorQueueBlockToProcess data);
+        bool? ProcessPendingCompressDecompressAddToQueue(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            try
+            if(ProcessingData.WaitAllPreviousBlocksAddedToQueue(CancellationTokenSource.Token))
             {
-                if(queueToWrite.TryAdd(ProcessingData))
+                try
                 {
-                    ProcessingData = null;
-                    return false;
+                    if(queueToWrite.TryAdd(ProcessingData, CancellationTokenSource.Token))
+                    {
+                        ProcessingData = null;
+                        return false;
+                    }
                 }
-            }
-            catch(InvalidOperationException)
-            {
-                if(queueToWrite.IsAddingCompleted)
+                catch(InvalidOperationException)
                 {
-                    // something wrong: queue-to-write is closed for additions, but there's block outstanding
-                    // probably there's an exception on another worker thread
-                    ProcessingData = null;
-                    return false;
-                }
-                else
-                {
-                    throw;
+                    if(queueToWrite.IsAddingCompleted)
+                    {
+                        // something wrong: queue-to-write is closed for additions, but there's block outstanding
+                        // probably there's an exception on another worker thread
+                        ProcessingData = null;
+                        return false;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 
             return null;
         }
-        bool? ProcessPendingCompressDecompressNextBlockIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingCompressDecompressNextBlockIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(queueToProcess.IsCompleted)
             {
@@ -88,7 +91,7 @@ namespace compressor
             {
                 if(queueToProcess.IsHalfFull() || !Threads.Where(x => x != Thread.CurrentThread).Any(x => x.IsAlive))
                 {
-                    ProcessorQueueBlock blockToProcess = null;
+                    ProcessorQueueBlockToProcess blockToProcess = null;
                     bool taken = false;
                     try
                     {
@@ -123,7 +126,7 @@ namespace compressor
                 return null;
             }
         }
-        bool? ProcessPendingCompressDecompressIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingCompressDecompressIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!ProcessingCompleted || ProcessingData != null)
             {
@@ -139,9 +142,9 @@ namespace compressor
         }
 
         protected bool ReadingCompleted = false;
-        protected abstract bool? ProcessPendingReadIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite);
+        protected abstract bool? ProcessPendingReadIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite);
 
-        public sealed override bool? RunOnce(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        public sealed override bool? RunOnce(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(ReadingCompleted && ProcessingCompleted && WritingCompleted)
             {
@@ -151,9 +154,9 @@ namespace compressor
             // if queue to process is getting bigger, need to engage
             // or if this processor is the only left, need to engage too
             var pendingProcessors = queueToProcess.IsAlmostFull() || !Threads.Where(x => x != Thread.CurrentThread).Any(x => x.IsAlive) ?
-                new Func<ProcessorQueue, ProcessorQueue, bool?>[] {
+                new Func<ProcessorQueueToProcess, ProcessorQueueToWrite, bool?>[] {
                     ProcessPendingWriteIfAny, ProcessPendingCompressDecompressIfAny, ProcessPendingReadIfAny }: 
-                new Func<ProcessorQueue, ProcessorQueue, bool?>[] {
+                new Func<ProcessorQueueToProcess, ProcessorQueueToWrite, bool?>[] {
                     ProcessPendingWriteIfAny, ProcessPendingReadIfAny, ProcessPendingCompressDecompressIfAny }; 
             foreach(var pendingProcessor in pendingProcessors)
             {
@@ -176,7 +179,7 @@ namespace compressor
         {
         }
 
-        protected sealed override ProcessorQueueBlock CompressDecompressBlock(ProcessorQueueBlock block)
+        protected sealed override ProcessorQueueBlockToWrite CompressDecompressBlock(ProcessorQueueBlockToProcess block)
         {
             try
             {

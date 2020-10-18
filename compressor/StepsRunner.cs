@@ -7,19 +7,19 @@ namespace compressor
     {
         public class Step
         {
-            public Step(Func<bool> condition, Func<ProcessorQueue, ProcessorQueue, bool?> executor)
+            public Step(Func<bool> condition, Func<ProcessorQueueToProcess, ProcessorQueueToWrite, bool?> executor)
             {
                 this.Condition = condition;
                 this.Executor = executor;
             }
 
-            public Step(Func<ProcessorQueue, ProcessorQueue, bool?> executor)
+            public Step(Func<ProcessorQueueToProcess, ProcessorQueueToWrite, bool?> executor)
                 : this(() => true, executor)
             {
             }
 
             public readonly Func<bool> Condition;
-            public readonly Func<ProcessorQueue, ProcessorQueue, bool?> Executor;
+            public readonly Func<ProcessorQueueToProcess, ProcessorQueueToWrite, bool?> Executor;
         }
 
         public StepsRunner(params Step[] steps)
@@ -32,7 +32,7 @@ namespace compressor
         }
 
         IEnumerable<Step> Steps;
-        public bool? Run(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        public bool? Run(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             foreach(var step in Steps)
             {

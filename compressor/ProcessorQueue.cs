@@ -4,30 +4,31 @@ using System.Threading;
 
 namespace compressor
 {
-    class ProcessorQueue
+    class ProcessorQueue<TBlock>
+        where TBlock: ProcessorQueueBlock
     {
         public ProcessorQueue(int maxCapacity)
         {
             this.QueueMaxCapacity = maxCapacity;
-            this.Queue = new BlockingCollection<ProcessorQueueBlock>(this.QueueMaxCapacity);
+            this.Queue = new BlockingCollection<TBlock>(new ConcurrentQueue<TBlock>(), maxCapacity);
         }
 
-        readonly BlockingCollection<ProcessorQueueBlock> Queue;
+        readonly BlockingCollection<TBlock> Queue;
         readonly int QueueMaxCapacity;
 
-        public bool TryAdd(ProcessorQueueBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public virtual bool TryAdd(TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             return Queue.TryAdd(item, millisecondsTimeout, cancellationToken);
         }
-        public bool TryAdd(ProcessorQueueBlock item, int millisecondsTimeout)
+        public virtual bool TryAdd(TBlock item, int millisecondsTimeout)
         {
             return Queue.TryAdd(item, millisecondsTimeout);
         }
-        public bool TryAdd(ProcessorQueueBlock item, CancellationToken cancellationToken)
+        public bool TryAdd(TBlock item, CancellationToken cancellationToken)
         {
             return TryAdd(item, 0, cancellationToken);
         }
-        public bool TryAdd(ProcessorQueueBlock item)
+        public bool TryAdd(TBlock item)
         {
             return TryAdd(item, 0);
         }
@@ -52,19 +53,19 @@ namespace compressor
             Queue.CompleteAdding();
         }
 
-        public bool TryTake(out ProcessorQueueBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public bool TryTake(out TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             return Queue.TryTake(out item, millisecondsTimeout, cancellationToken);
         }
-        public bool TryTake(out ProcessorQueueBlock item, int millisecondsTimeout)
+        public bool TryTake(out TBlock item, int millisecondsTimeout)
         {
             return Queue.TryTake(out item, millisecondsTimeout);
         }
-        public bool TryTake(out ProcessorQueueBlock item, CancellationToken cancellationToken)
+        public bool TryTake(out TBlock item, CancellationToken cancellationToken)
         {
             return TryTake(out item, 0, cancellationToken);
         }
-        public bool TryTake(out ProcessorQueueBlock item)
+        public bool TryTake(out TBlock item)
         {
             return TryTake(out item, 0);
         }

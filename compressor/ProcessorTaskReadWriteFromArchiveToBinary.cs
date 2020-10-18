@@ -17,27 +17,8 @@ namespace compressor
             RunIdleSleep(milliseconds, new [] { WritingAsyncResult, ReadingLengthAsyncResult, ReadingBlockAsyncResult });
         }
 
-        public override void Run(ProcessorQueue quequeToProcess, ProcessorQueue queueToWrite)
-        {
-            // prepare output
-            // ... set length
-            // ... ... read length from input
-            var originalStreamLength = new byte[sizeof(long)];
-            var originalStreamLengthRead = InputStream.Read(originalStreamLength, 0, originalStreamLength.Length);
-            if(originalStreamLengthRead != originalStreamLength.Length)
-            {
-                throw new IOException("Failed to read original size");
-            }
-            var originalLength = BitConverter.ToInt64(originalStreamLength);
-            // ... ... set output stream size and rewind
-            OutputStream.SetLength(originalLength);
-            OutputStream.Seek(0, SeekOrigin.Begin);
-            // perform read/process/write
-            base.Run(quequeToProcess, queueToWrite);
-        }
-
         private IAsyncResult WritingAsyncResult;
-        bool? ProcessPendingWriteFinishPendingWrite(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingWriteFinishPendingWrite(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(WritingAsyncResult.IsCompleted)
             {
@@ -55,9 +36,9 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingWriteNextBlockToWriteIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingWriteNextBlockToWriteIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            ProcessorQueueBlock blockToWrite;
+            ProcessorQueueBlockToWrite blockToWrite;
             bool taken = false;
             try
             {
@@ -78,8 +59,7 @@ namespace compressor
                     
             if(taken)
             {
-                OutputStream.Seek(blockToWrite.Offset, SeekOrigin.Begin);
-                WritingAsyncResult = OutputStream.BeginWrite(blockToWrite.Data, 0, (int)Math.Min(blockToWrite.Data.Length, blockToWrite.OriginalLength), null, null);
+                WritingAsyncResult = OutputStream.BeginWrite(blockToWrite.Data, 0, blockToWrite.Data.Length, null, null);
                 return false;
             }
             else
@@ -93,7 +73,7 @@ namespace compressor
 
             return null;
         }
-        protected sealed override bool? ProcessPendingWriteIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        protected sealed override bool? ProcessPendingWriteIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!WritingCompleted || WritingAsyncResult != null)
             {
@@ -106,15 +86,17 @@ namespace compressor
             return null;
         }
 
-        private ProcessorQueueBlock ReadingData;
-        private IAsyncResult ReadingLengthAsyncResult;
-        private IAsyncResult ReadingBlockAsyncResult;
-        bool? ProcessPendingReadAddToQueue(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        ProcessorQueueBlockToProcess ReadingDataPrevious;
+        ProcessorQueueBlockToProcess ReadingData;
+        IAsyncResult ReadingLengthAsyncResult;
+        IAsyncResult ReadingBlockAsyncResult;
+        bool? ProcessPendingReadAddToQueue(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             try
             {
                 if(queueToProcess.TryAdd(ReadingData))
                 {
+                    ReadingDataPrevious = ReadingData;
                     ReadingData = null;
                     return false;
                 }
@@ -125,6 +107,7 @@ namespace compressor
                 {
                     // something wrong: queue-to-process is closed for additions, but there's block outstanding
                     // probably there's an exception on another worker thread
+                    ReadingDataPrevious = ReadingData;
                     ReadingData = null;
                     return false;
                 }
@@ -132,7 +115,7 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingReadFinishPendingBlockRead(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadFinishPendingBlockRead(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(ReadingBlockAsyncResult.IsCompleted)
             {
@@ -148,14 +131,10 @@ namespace compressor
                         }
                         else
                         {
-                            var off = 0;
-                            var offset = BitConverter.ToInt64(dataRaw, off);
-                            off += sizeof(long);
-                            var originalLength = BitConverter.ToInt64(dataRaw, off);
-                            off += sizeof(long);
-                            var data = dataRaw.SubArray(off);
+                            var originalLength = BitConverter.ToInt64(dataRaw);
+                            var data = dataRaw.SubArray(sizeof(long));
 
-                            ReadingData = new ProcessorQueueBlock(offset, originalLength, data);
+                            ReadingData = new ProcessorQueueBlockToProcess(ReadingDataPrevious, originalLength, data);
                         }
                     }
                     else
@@ -174,7 +153,7 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingReadFinishPendingLengthRead(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadFinishPendingLengthRead(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(ReadingLengthAsyncResult.IsCompleted)
             {
@@ -220,7 +199,7 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingReadStartNextRead(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadStartNextRead(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             var buffer = new byte[sizeof(long)];
             try
@@ -244,7 +223,7 @@ namespace compressor
 
             return null;
         }
-        protected sealed override bool? ProcessPendingReadIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        protected sealed override bool? ProcessPendingReadIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!ReadingCompleted || ReadingData != null || ReadingBlockAsyncResult != null || ReadingLengthAsyncResult != null)
             {

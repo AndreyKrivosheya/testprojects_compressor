@@ -18,27 +18,8 @@ namespace compressor
             RunIdleSleep(milliseconds, new [] { WritingAsyncResult, ReadingAsyncResult});
         }
 
-        public override void Run(ProcessorQueue quequeToProcess, ProcessorQueue queueToWrite)
-        {
-            // prepare output file
-            // ... reset length
-            OutputStream.SetLength(0);
-            // ... write length
-            var inputStreamLength = BitConverter.GetBytes(InputStream.Length);
-            OutputStream.Write(inputStreamLength, 0, inputStreamLength.Length);
-            // perform read/process/write
-            try
-            {
-                base.Run(quequeToProcess, queueToWrite);
-            }
-            finally
-            {
-                OutputStream.Flush();
-            }
-        }
-
         IAsyncResult WritingAsyncResult;
-        bool? ProcessPendingWriteFinishPendingWrite(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingWriteFinishPendingWrite(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(WritingAsyncResult.IsCompleted)
             {
@@ -56,9 +37,9 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingWriteNextBlockToWriteIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingWriteNextBlockToWriteIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            ProcessorQueueBlock blockToWrite;
+            ProcessorQueueBlockToWrite blockToWrite;
             bool taken = false;
             try
             {
@@ -79,14 +60,12 @@ namespace compressor
 
             if(taken)
             {
-                using(var blockStream = new MemoryStream(sizeof(/*ProcessorQueueBlock.Data.Length*/long) + sizeof(/*ProcessorQueueBlock.Offset*/long) + sizeof(/*ProcessorQueueBlock.OriginalLength*/long) + blockToWrite.Data.Length))
+                using(var blockStream = new MemoryStream(sizeof(/*ProcessorQueueBlock.Data.Length*/long) + sizeof(/*ProcessorQueueBlock.Length*/long) + blockToWrite.Data.Length))
                 {
-                    var blockLength = (long)blockToWrite.Data.Length + sizeof(/*ProcessorQueueBlock.Offset*/long) + sizeof(/*ProcessorQueueBlock.OriginalLength*/long);
+                    var blockLength = (long)blockToWrite.Data.Length + sizeof(/*ProcessorQueueBlock.OriginalLength*/long);
                     var blockLengthBytes = BitConverter.GetBytes(blockLength);
                     blockStream.Write(blockLengthBytes, 0, blockLengthBytes.Length);
 
-                    var blockOffsetBytes = BitConverter.GetBytes(blockToWrite.Offset);
-                    blockStream.Write(blockOffsetBytes, 0, blockOffsetBytes.Length);
                     var blockOriginalLengthBytes = BitConverter.GetBytes(blockToWrite.OriginalLength);
                     blockStream.Write(blockOriginalLengthBytes, 0, blockOriginalLengthBytes.Length);
                     var blockData = blockToWrite.Data;
@@ -100,7 +79,7 @@ namespace compressor
                     }
                     catch(Exception e)
                     {
-                        throw new ApplicationException("Faild to write block", e);
+                        throw new ApplicationException("Failed to write block", e);
                     }
                 }
             }
@@ -115,7 +94,7 @@ namespace compressor
                 return null;
             }
         }
-        protected sealed override bool? ProcessPendingWriteIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        protected sealed override bool? ProcessPendingWriteIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!WritingCompleted || WritingAsyncResult != null)
             {
@@ -128,14 +107,17 @@ namespace compressor
             return null;
         }
 
-        private ProcessorQueueBlock ReadingData;
+
+        ProcessorQueueBlockToProcess ReadingDataPrevious;
+        ProcessorQueueBlockToProcess ReadingData;
         private IAsyncResult ReadingAsyncResult;
-        bool? ProcessPendingReadAddToQueue(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadAddToQueue(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             try
             {
                 if(queueToProcess.TryAdd(ReadingData))
                 {
+                    ReadingDataPrevious = ReadingData;
                     ReadingData = null;
                     return false;
                 }
@@ -146,6 +128,7 @@ namespace compressor
                 {
                     // something wrong: queue-to-process is closed for additions, but there's block outstanding
                     // probably there's an exception on another worker thread
+                    ReadingDataPrevious = ReadingData;
                     ReadingData = null;
                     return false;
                 }
@@ -153,7 +136,7 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingReadFinishPendingRead(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadFinishPendingRead(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(ReadingAsyncResult.IsCompleted)
             {
@@ -162,8 +145,8 @@ namespace compressor
                     var totalRead = InputStream.EndRead(ReadingAsyncResult);
                     if(totalRead != 0)
                     {
-                        ReadingData = (ProcessorQueueBlock)ReadingAsyncResult.AsyncState;
-                        if(totalRead != ReadingData.OriginalLength)
+                        var data = (Tuple<long, byte[]>)ReadingAsyncResult.AsyncState;
+                        if(totalRead != data.Item1)
                         {
                             if(InputStream.Position < InputStream.Length)
                             {
@@ -171,8 +154,12 @@ namespace compressor
                             }
                             else
                             {
-                                ReadingData = new ProcessorQueueBlock(ReadingData.Offset, totalRead, ReadingData.Data.SubArray(0, totalRead));
+                                ReadingData = new ProcessorQueueBlockToProcess(ReadingDataPrevious, totalRead, data.Item2.SubArray(0, totalRead));
                             }
+                        }
+                        else
+                        {
+                            ReadingData = new ProcessorQueueBlockToProcess(ReadingDataPrevious, data.Item1, data.Item2);
                         }
                     }
                     else
@@ -191,14 +178,14 @@ namespace compressor
 
             return null;
         }
-        bool? ProcessPendingReadStartNextRead(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        bool? ProcessPendingReadStartNextRead(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
-            var data = new ProcessorQueueBlock(InputStream.Position, Settings.BlockSize, new byte[Settings.BlockSize]);
+            var data = Tuple.Create(Settings.BlockSize, new byte[Settings.BlockSize]);
             try
             {
                 try
                 {
-                    ReadingAsyncResult = InputStream.BeginRead(data.Data, 0, data.Data.Length, null, data);
+                    ReadingAsyncResult = InputStream.BeginRead(data.Item2, 0, data.Item2.Length, null, data);
                     return false;
                 }
                 catch(IOException)
@@ -214,7 +201,7 @@ namespace compressor
                 throw new ArgumentNullException("Failed to read block", e);
             }
         }
-        protected sealed override bool? ProcessPendingReadIfAny(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        protected sealed override bool? ProcessPendingReadIfAny(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             if(!ReadingCompleted || ReadingData != null || ReadingAsyncResult != null)
             {

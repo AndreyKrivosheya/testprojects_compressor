@@ -39,7 +39,7 @@ namespace compressor
         {
             RunIdleSleep(100);
         }
-        public virtual void Run(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite)
+        public virtual void Run(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite)
         {
             while(!CancellationTokenSource.IsCancellationRequested)
             {
@@ -65,7 +65,7 @@ namespace compressor
                 }
             }
         }
-        public virtual bool? RunOnce(ProcessorQueue quequeToProcess, ProcessorQueue queueToWrite)
+        public virtual bool? RunOnce(ProcessorQueueToProcess quequeToProcess, ProcessorQueueToWrite queueToWrite)
         {
             return true;
         }

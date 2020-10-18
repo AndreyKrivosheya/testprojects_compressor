@@ -10,7 +10,7 @@ namespace compressor
         where TaskFactoryReadWrite: IProcessorTaskFactoryReadWrite, new()
         where TaskFactoryCompressDecompress: IProcessorTaskFactoryCompressDecompress, new()
     {
-        public Processor(ISettingsProvider settings, FileStream inputStream, FileStream outputStream)
+        public Processor(ISettingsProvider settings, Stream inputStream, Stream outputStream)
         {
             if(settings == null)
             {
@@ -36,12 +36,12 @@ namespace compressor
 
         private readonly ISettingsProvider Settings;
 
-        private readonly FileStream InputStream;
-        private readonly FileStream OutputStream;
+        private readonly Stream InputStream;
+        private readonly Stream OutputStream;
 
         private class ThreadContext
         {
-            public ThreadContext(ProcessorQueue queueToProcess, ProcessorQueue queueToWrite, Thread thread, ProcessorTask task)
+            public ThreadContext(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite, Thread thread, ProcessorTask task)
             {
                 this.QueueToProcess = queueToProcess;
                 this.QueueToWrite = queueToWrite;
@@ -49,8 +49,8 @@ namespace compressor
                 this.Task = task;
             }
 
-            public readonly ProcessorQueue QueueToProcess;
-            public readonly ProcessorQueue QueueToWrite;
+            public readonly ProcessorQueueToProcess QueueToProcess;
+            public readonly ProcessorQueueToWrite QueueToWrite;
 
             public readonly Thread Thread;
             public readonly ProcessorTask Task;
@@ -59,8 +59,8 @@ namespace compressor
         public void Run()
         {
             var queueSize = Settings.MaxQueueSize;
-            var queueToProcess = new ProcessorQueue(queueSize);
-            var queueToWrite = new ProcessorQueue(queueSize);
+            var queueToProcess = new ProcessorQueueToProcess(queueSize);
+            var queueToWrite = new ProcessorQueueToWrite(queueSize);
 
             var concurrency = Settings.MaxConcurrency;
             var threads = new ThreadContext[concurrency];

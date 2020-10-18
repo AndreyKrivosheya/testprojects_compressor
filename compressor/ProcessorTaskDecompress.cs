@@ -38,7 +38,7 @@ namespace compressor
                 throw new ApplicationException("Failed to decompress block", e);
             }
         }
-        public static ProcessorQueueBlock DecompressBlock(ProcessorQueueBlock block)
+        public static ProcessorQueueBlockToWrite DecompressBlock(ProcessorQueueBlockToProcess block)
         {
             var dataDecompressed = DecompressData(block.Data);
             if(dataDecompressed.Length != block.OriginalLength)
@@ -47,7 +47,7 @@ namespace compressor
             }
             else
             {
-                return new ProcessorQueueBlock(block, dataDecompressed);
+                return new ProcessorQueueBlockToWrite(block, dataDecompressed);
             }
         }
     }
