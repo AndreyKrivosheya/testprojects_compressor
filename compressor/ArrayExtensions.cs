@@ -15,5 +15,13 @@ namespace compressor
         {
             return source.SubArray(start, source.Length - start);
         }
+
+        public static T[] Concat<T>(this T[] one, T[] another)
+        {
+            var result = new T[one.Length + another.Length];
+            Array.Copy(one, 0, result, 0, one.Length);
+            Array.Copy(another, 0, result, one.Length, another.Length);
+            return result;
+        }
     }
 }

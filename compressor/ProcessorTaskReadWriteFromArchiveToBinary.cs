@@ -131,10 +131,9 @@ namespace compressor
                         }
                         else
                         {
-                            var originalLength = BitConverter.ToInt64(dataRaw);
-                            var data = dataRaw.SubArray(sizeof(long));
-
-                            ReadingData = new ProcessorQueueBlockToProcess(ReadingDataPrevious, originalLength, data);
+                            ReadingData = new ProcessorQueueBlockToProcess(ReadingDataPrevious,
+                                originalLength: BitConverter.ToInt32(dataRaw, dataRaw.Length - sizeof(Int32)),
+                                data: dataRaw);
                         }
                     }
                     else

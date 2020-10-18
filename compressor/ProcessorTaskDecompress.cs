@@ -15,21 +15,12 @@ namespace compressor
         {
             try
             {
-                using(var inStream = new MemoryStream(GZipStreamHelper.Header.Length + data.Length))
+                using(var inStream = new GZipStream(new MemoryStream(ArrayExtensions.Concat(GZipStreamHelper.Header, data)), CompressionMode.Decompress))
                 {
-                    // header
-                    inStream.Write(GZipStreamHelper.Header, 0, GZipStreamHelper.Header.Length);
-                    // data
-                    inStream.Write(data, 0, data.Length);
-                    
-                    inStream.Seek(0, SeekOrigin.Begin);
-                    using(var inStreamGz = new GZipStream(inStream, CompressionMode.Decompress))
+                    using(var outStream = new MemoryStream(BitConverter.ToInt32(data, data.Length - sizeof(Int32))))
                     {
-                        using(var outStream = new MemoryStream())
-                        {
-                            inStreamGz.CopyTo(outStream);
-                            return outStream.ToArray();
-                        }
+                        inStream.CopyTo(outStream);
+                        return outStream.ToArray();
                     }
                 }
             }

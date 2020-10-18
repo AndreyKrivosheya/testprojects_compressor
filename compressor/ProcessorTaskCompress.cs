@@ -35,14 +35,8 @@ namespace compressor
                         }
                         else
                         {
-                            using(var outStream = new MemoryStream((int)outStreamRaw.Length - GZipStreamHelper.Header.Length))
-                            {
-                                var outRawBytes = outStreamRaw.ToArray();
-                                // all but the header
-                                outStream.Write(outRawBytes, GZipStreamHelper.Header.Length, outRawBytes.Length - GZipStreamHelper.Header.Length);
-
-                                return outStream.ToArray();
-                            }
+                            // all bytes but the header
+                            return outStreamRaw.ToArray().SubArray(GZipStreamHelper.Header.Length);
                         }
                     }
                     else

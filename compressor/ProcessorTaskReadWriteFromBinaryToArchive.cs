@@ -60,27 +60,15 @@ namespace compressor
 
             if(taken)
             {
-                using(var blockStream = new MemoryStream(sizeof(/*ProcessorQueueBlock.Data.Length*/long) + sizeof(/*ProcessorQueueBlock.Length*/long) + blockToWrite.Data.Length))
+                var block = ArrayExtensions.Concat(BitConverter.GetBytes(blockToWrite.Data.LongLength), blockToWrite.Data);
+                try
                 {
-                    var blockLength = (long)blockToWrite.Data.Length + sizeof(/*ProcessorQueueBlock.OriginalLength*/long);
-                    var blockLengthBytes = BitConverter.GetBytes(blockLength);
-                    blockStream.Write(blockLengthBytes, 0, blockLengthBytes.Length);
-
-                    var blockOriginalLengthBytes = BitConverter.GetBytes(blockToWrite.OriginalLength);
-                    blockStream.Write(blockOriginalLengthBytes, 0, blockOriginalLengthBytes.Length);
-                    var blockData = blockToWrite.Data;
-                    blockStream.Write(blockData, 0, blockData.Length);
-
-                    var block = blockStream.ToArray();
-                    try
-                    {
-                        WritingAsyncResult = OutputStream.BeginWrite(block, 0, block.Length, null, null);
-                        return false;
-                    }
-                    catch(Exception e)
-                    {
-                        throw new ApplicationException("Failed to write block", e);
-                    }
+                    WritingAsyncResult = OutputStream.BeginWrite(block, 0, block.Length, null, null);
+                    return false;
+                }
+                catch(Exception e)
+                {
+                    throw new ApplicationException("Failed to write block", e);
                 }
             }
             else
