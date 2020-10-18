@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.IO.Compression;
 
 namespace compressor
@@ -23,15 +24,30 @@ namespace compressor
                         {
                             inStream.CopyTo(outStreamRawGz);
                         }
+                        outStreamRawGz.Flush();
                     }
 
-                    using(var outStream = new MemoryStream((int)outStreamRaw.Length - 10))
+                    if(outStreamRaw.Length >= GZipStreamHelper.Header.Length)
                     {
-                        var outRawBytes = outStreamRaw.ToArray();
-                        // all but the header
-                        outStream.Write(outRawBytes, 10, outRawBytes.Length - 10);
+                        if(outStreamRaw.Length == GZipStreamHelper.Header.Length)
+                        {
+                            return Enumerable.Empty<byte>().ToArray();
+                        }
+                        else
+                        {
+                            using(var outStream = new MemoryStream((int)outStreamRaw.Length - GZipStreamHelper.Header.Length))
+                            {
+                                var outRawBytes = outStreamRaw.ToArray();
+                                // all but the header
+                                outStream.Write(outRawBytes, GZipStreamHelper.Header.Length, outRawBytes.Length - GZipStreamHelper.Header.Length);
 
-                        return outStream.ToArray();
+                                return outStream.ToArray();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new ApplicationException("Failed to compress block: compressed block size if less than header size");
                     }
                 }
             }

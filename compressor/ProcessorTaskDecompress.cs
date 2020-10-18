@@ -15,10 +15,10 @@ namespace compressor
         {
             try
             {
-                using(var inStream = new MemoryStream(10 + data.Length))
+                using(var inStream = new MemoryStream(GZipStreamHelper.Header.Length + data.Length))
                 {
                     // header
-                    inStream.Write(new byte[] { 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a }, 0, 10);
+                    inStream.Write(GZipStreamHelper.Header, 0, GZipStreamHelper.Header.Length);
                     // data
                     inStream.Write(data, 0, data.Length);
                     
