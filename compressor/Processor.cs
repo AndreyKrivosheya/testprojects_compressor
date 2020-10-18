@@ -4,6 +4,8 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 
+using compressor.Common;
+
 namespace compressor
 {
     class Processor<TaskFactoryReadWrite, TaskFactoryCompressDecompress>
@@ -41,22 +43,18 @@ namespace compressor
 
         private class ThreadContext
         {
-            public ThreadContext(ProcessorQueueToProcess queueToProcess, ProcessorQueueToWrite queueToWrite, Thread thread, ProcessorTask task)
+            public ThreadContext(Thread thread, ProcessorTask task)
             {
-                this.QueueToProcess = queueToProcess;
-                this.QueueToWrite = queueToWrite;
                 this.Thread = thread;
                 this.Task = task;
             }
-
-            public readonly ProcessorQueueToProcess QueueToProcess;
-            public readonly ProcessorQueueToWrite QueueToWrite;
 
             public readonly Thread Thread;
             public readonly ProcessorTask Task;
             public ExceptionDispatchInfo ThreadExecutionException;
         }
-        public void Run()
+        
+        void RunOnThread()
         {
             var queueSize = Settings.MaxQueueSize;
             var queueToProcess = new ProcessorQueueToProcess(queueSize);
@@ -67,14 +65,33 @@ namespace compressor
 
             for(int i = 0; i < threads.Length; i++)
             {
+                var thread = new Thread((object ctx) => {
+                    var ctxTyped = ctx as ThreadContext;
+                    if(ctxTyped != null)
+                    {
+                        try
+                        {
+                            if(ctxTyped.Task != null)
+                            {
+                                ctxTyped.Task.Run(queueToProcess, queueToWrite);
+                            }
+                        }
+                        catch(Exception e)
+                        {
+                            System.Diagnostics.Debug.WriteLine(e);
+                            ctxTyped.ThreadExecutionException = ExceptionDispatchInfo.Capture(e);
+                        }
+                    }
+                }) { IsBackground = true };
+
                 if(i == 0)
                 {
-                    threads[i] = new ThreadContext(queueToProcess, queueToWrite, new Thread(RunTask), (new TaskFactoryReadWrite()).Create(Settings, InputStream, OutputStream, threads.Skip(1).Select(x => x.Thread)));
+                    threads[i] = new ThreadContext(thread, (new TaskFactoryReadWrite()).Create(Settings, InputStream, OutputStream, threads.Skip(1).Select(x => x.Thread)));
                     threads[i].Thread.Name = string.Format("Processor[{0}]: Read/Process/Write worker", i);
                 }
                 else
                 {
-                    threads[i] = new ThreadContext(queueToProcess, queueToWrite, new Thread(RunTask) { IsBackground = true }, (new TaskFactoryCompressDecompress()).Create(Settings));
+                    threads[i] = new ThreadContext(thread, (new TaskFactoryCompressDecompress()).Create(Settings));
                     threads[i].Thread.Name = string.Format("Processor[{0}]: Process worker", i);
                 }
                 
@@ -126,26 +143,63 @@ namespace compressor
             }
         }
 
-        private void RunTask(object ctx)
+        AsyncResultNoResult PendingAsyncResult;
+        public IAsyncResult BeginRun(AsyncCallback asyncCallback, object state)
         {
-            var ctxTyped = ctx as ThreadContext;
-            if(ctxTyped != null)
+            var asyncResultNew = new AsyncResultNoResult(asyncCallback, state);
+            if(Interlocked.CompareExchange(ref PendingAsyncResult, asyncResultNew, null) != null)
             {
-                RunTask(ctxTyped);
+                throw new InvalidOperationException("Only one asynchronius run request is allowed");
+            }
+            else
+            {
+                (new Thread((object asyncResult) => {
+                    var asyncResultTyped = (AsyncResultNoResult)asyncResult;
+                    if(asyncResult != null)
+                    {
+                        try
+                        {
+                            RunOnThread();
+                            asyncResultTyped.SetAsCompleted(null, false);
+                        }
+                        catch(Exception e)
+                        {
+                            asyncResultTyped.SetAsCompleted(e, false);
+                        }
+                    }
+                }) { IsBackground = true }).Start(PendingAsyncResult);
+                return PendingAsyncResult;
             }
         }
-        private void RunTask(ThreadContext ctx)
+        public void EndRun(IAsyncResult asyncResult)
         {
-            try
+            if(asyncResult == null)
             {
-                if(ctx.Task != null)
-                    ctx.Task.Run(ctx.QueueToProcess, ctx.QueueToWrite);
+                throw new ArgumentNullException("asyncResult");
             }
-            catch(Exception e)
+
+            // assumes only one thread is calling this function
+            if(PendingAsyncResult == null)
             {
-                System.Diagnostics.Debug.WriteLine(e);
-                ctx.ThreadExecutionException = ExceptionDispatchInfo.Capture(e);
+                throw new InvalidOperationException("No asynchronious runs were requested");
             }
+            else
+            {
+                if(!object.ReferenceEquals(asyncResult, PendingAsyncResult))
+                {
+                    throw new InvalidOperationException("End of asynchronius run request did not originate from a BeginRun() method on the current processor");
+                }
+                else
+                {
+                    PendingAsyncResult.EndInvoke();
+                    PendingAsyncResult = null;
+                }
+            }
+        }
+
+        public void Run()
+        {
+            EndRun(BeginRun(null, null));
         }
     }
 }
