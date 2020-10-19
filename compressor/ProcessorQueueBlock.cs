@@ -73,23 +73,42 @@ namespace compressor
                 }
                 if(waitableThisBlockAddedToQueue != null)
                 {
-                    if(0 == WaitHandle.WaitAny(new [] { waitableThisBlockAddedToQueue, cancellationToken.WaitHandle }, milliseconds))
+                    bool waitingEndedDueToAddedToQueue = false;
+                    bool waitingEndedDueToWaitableDisposed = false;
+                    try
                     {
-                        lock(BlockAddedToQueueLazyLock)
+                        if(0 == WaitHandle.WaitAny(new [] { waitableThisBlockAddedToQueue, cancellationToken.WaitHandle }, milliseconds))
                         {
-                            BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
+                            waitingEndedDueToAddedToQueue = true;
                         }
-                        
-                        try
+                    }
+                    catch(ObjectDisposedException)
+                    {
+                        // waitable for added to queue was closed before receiving signal on this thread
+                        waitingEndedDueToAddedToQueue = true;
+                        waitingEndedDueToWaitableDisposed = true;
+                    }
+                    if(waitingEndedDueToAddedToQueue)
+                    {
+                        if(!waitingEndedDueToWaitableDisposed)
                         {
-                            waitableThisBlockAddedToQueue.Close();
+                            // reset waitable generator, so that future waits will wait nothing
+                            lock(BlockAddedToQueueLazyLock)
+                            {
+                                BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
+                            }
+                            // close waitable
+                            try
+                            {
+                                waitableThisBlockAddedToQueue.Close();
+                            }
+                            catch(Exception)
+                            {
+                                // probably already closed on another thread
+                                // one of the threads should succeed
+                            }
                         }
-                        catch(Exception)
-                        {
-                            // probably already closed on another thread
-                            // one of the threads should succeed
-                        }
-                        
+                                              
                         return true;
                     }
                     else
@@ -114,8 +133,8 @@ namespace compressor
             this.OriginalLength = originalLength;
             this.Data = data;
         }
-        protected ProcessorQueueBlock(ProcessorQueueBlock awaiterBlock, long length, byte[] data)
-            : this(awaiterBlock.Awaiter, length, data)
+        protected ProcessorQueueBlock(ProcessorQueueBlock awaiterBlock, long originalLength, byte[] data)
+            : this(awaiterBlock.Awaiter, originalLength, data)
         {
         }
 
