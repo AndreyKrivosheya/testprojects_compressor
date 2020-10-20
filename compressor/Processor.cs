@@ -41,19 +41,6 @@ namespace compressor
         private readonly Stream InputStream;
         private readonly Stream OutputStream;
 
-        private class ThreadContext
-        {
-            public ThreadContext(Thread thread, ProcessorTask task)
-            {
-                this.Thread = thread;
-                this.Task = task;
-            }
-
-            public readonly Thread Thread;
-            public readonly ProcessorTask Task;
-            public ExceptionDispatchInfo ThreadExecutionException;
-        }
-        
         void RunOnThread()
         {
             var queueSize = Settings.MaxQueueSize;
@@ -61,71 +48,54 @@ namespace compressor
             var queueToWrite = new ProcessorQueueToWrite(queueSize);
 
             var concurrency = Settings.MaxConcurrency;
-            var threads = new ThreadContext[concurrency];
+            var threads = new Thread[concurrency - 1];
+            var threadsPayloads = new ProcessorTask[concurrency - 1];
+            var threadsErrors = new ExceptionDispatchInfo[concurrency - 1];
 
-            for(int i = 0; i < threads.Length; i++)
+            // spawn processors, if needed
+            for(int i = 0; i < concurrency - 1; i++)
             {
-                var thread = new Thread((object ctx) => {
-                    var ctxTyped = ctx as ThreadContext;
-                    if(ctxTyped != null)
+                threadsPayloads[i] = (new TaskFactoryCompressDecompress()).Create(Settings);
+                threads[i] = new Thread((object task) => {
+                    var taskTyped = task as ProcessorTask;
+                    if(taskTyped != null)
                     {
                         try
                         {
-                            if(ctxTyped.Task != null)
-                            {
-                                ctxTyped.Task.Run(queueToProcess, queueToWrite);
-                            }
+                            taskTyped.Run(queueToProcess, queueToWrite);
                         }
                         catch(Exception e)
                         {
                             System.Diagnostics.Debug.WriteLine(e);
-                            ctxTyped.ThreadExecutionException = ExceptionDispatchInfo.Capture(e);
+                            threadsErrors[i] = ExceptionDispatchInfo.Capture(e);
                         }
                     }
-                }) { IsBackground = true };
-
-                if(i == 0)
+                }) { IsBackground = true, Name = string.Format("Processor[{0}]: Process worker", i) };
+                threads[i].Start(threadsPayloads[i]);
+            }
+            // run reader/processor/writer
+            try
+            {
+                (new TaskFactoryReadWrite()).Create(Settings, InputStream, OutputStream, threads).Run(queueToProcess, queueToWrite);
+            }
+            catch(Exception)
+            {
+                // abort processors payloads
+                for(var i = 0; i < concurrency - 1; i++)
                 {
-                    threads[i] = new ThreadContext(thread, (new TaskFactoryReadWrite()).Create(Settings, InputStream, OutputStream, threads.Skip(1).Select(x => x.Thread)));
-                    threads[i].Thread.Name = string.Format("Processor[{0}]: Read/Process/Write worker", i);
-                }
-                else
-                {
-                    threads[i] = new ThreadContext(thread, (new TaskFactoryCompressDecompress()).Create(Settings));
-                    threads[i].Thread.Name = string.Format("Processor[{0}]: Process worker", i);
+                    threadsPayloads[i].Cancel();
+                    threads[i].Join();
                 }
                 
-                threads[i].Thread.Start(threads[i]);
+                throw;
             }
-            for(int i = 0; i < threads.Length; i++)
+            // wait processors are all finshed (should already be)
+            for(int i = 0; i < concurrency - 1; i++)
             {
-                threads[i].Thread.Join();
-                if(i == 0)
-                {
-                    // if reader/writer thread failed
-                    if(threads[i].ThreadExecutionException != null)
-                    {
-                        // abort other threads
-                        foreach(var thrd in threads.Skip(1))
-                        {
-                            thrd.Task.Cancel();
-                            thrd.Thread.Join();
-                            break;
-                        }
-                        // throw reader/writer thread failure
-                        try
-                        {
-                            threads[i].ThreadExecutionException.Throw();
-                        }
-                        catch(Exception e)
-                        {
-                            throw new ApplicationException("Failed to process", e);
-                        }
-                    }
-                }    
+                threads[i].Join();
             }
-            
-            var errors = threads.Where(x => x.ThreadExecutionException != null).Select(x => x.ThreadExecutionException);
+            // ... report exceptions if any
+            var errors = threadsErrors.Where(x => x != null);
             if(errors.Any())
             {
                 var exceptions = errors.Select(x => {
@@ -199,7 +169,22 @@ namespace compressor
 
         public void Run()
         {
-            EndRun(BeginRun(null, null));
+            var asyncResultNew = new AsyncResultNoResult(null, null);
+            if(Interlocked.CompareExchange(ref PendingAsyncResult, asyncResultNew, null) != null)
+            {
+                throw new InvalidOperationException("Running synchroniously and asynchroniously simulteneously is not allowed");
+            }
+            else
+            {
+                try
+                {
+                    RunOnThread();
+                }
+                finally
+                {
+                    PendingAsyncResult = null;
+                }
+            }
         }
     }
 }
