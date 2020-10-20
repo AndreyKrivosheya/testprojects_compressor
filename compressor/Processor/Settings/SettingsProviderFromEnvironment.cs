@@ -71,6 +71,15 @@ namespace compressor.Processor.Settings
             }
         }
 
+        readonly Lazy<int> MaxBlocksToWriteAtOnceLazy;
+        public int MaxBlocksToWriteAtOnce
+        {
+            get
+            {
+                return MaxBlocksToWriteAtOnceLazy.Value;
+            }
+        }
+
         protected SettingsProviderFromEnvironment()
         {
             BlockSizeLazy = new Lazy<long>(() => {
@@ -87,6 +96,11 @@ namespace compressor.Processor.Settings
                     var def = 100;
                     var value = ReadFromEnvironmentVariableAndConvertToInt("COMPRESSOR_MAX_QUEUE_SIZE", def);
                     return Math.Max(Math.Min(value >= 1 ? value : def, (int)(2L * 1024 * 1024 * 1024 / BlockSize)), 1);
+                });
+            MaxBlocksToWriteAtOnceLazy = new Lazy<int>(() => {
+                    var def = MaxQueueSize / 2;
+                    var value = ReadFromEnvironmentVariableAndConvertToInt("COMPRESSOR_MAX_BLOCKS_TO_WRITE_AT_ONCE", def);
+                    return Math.Min(value >= 1 ? value : def, MaxQueueSize);
                 });
         }
 

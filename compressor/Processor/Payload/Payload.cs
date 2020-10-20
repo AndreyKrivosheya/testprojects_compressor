@@ -30,9 +30,9 @@ namespace compressor.Processor.Payload
         {
             RunIdleSleep(milliseconds, new WaitHandle[] {});
         }
-        protected virtual void RunIdleSleep(int milliseconds, IEnumerable<WaitHandle> waitables)
+        protected void RunIdleSleep(int milliseconds, IEnumerable<WaitHandle> waitables)
         {
-            WaitHandle.WaitAny(waitables.Concat(new WaitHandle[] { CancellationTokenSource.Token.WaitHandle }).Where(x => x != null).ToArray(), milliseconds);
+            WaitHandle.WaitAny(new WaitHandle[] { CancellationTokenSource.Token.WaitHandle }.Concat(waitables).Where(x => x != null).ToArray(), milliseconds);
         }
         protected virtual void RunIdleSleep(int milliseconds, IEnumerable<IAsyncResult> waitables)
         {

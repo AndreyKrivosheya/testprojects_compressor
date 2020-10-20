@@ -7,5 +7,7 @@ namespace compressor.Processor.Settings
         int MaxQueueSize { get; }
 
         long BlockSize { get; }
+
+        int MaxBlocksToWriteAtOnce { get; }
     }
 }

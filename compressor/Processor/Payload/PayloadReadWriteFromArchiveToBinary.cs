@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
+using compressor.Common;
 using compressor.Processor.Queue;
 using compressor.Processor.Settings;
 
@@ -17,76 +19,27 @@ namespace compressor.Processor.Payload
 
         protected override void RunIdleSleep(int milliseconds)
         {
-            RunIdleSleep(milliseconds, new [] { WritingAsyncResult, ReadingLengthAsyncResult, ReadingBlockAsyncResult });
+            RunIdleSleep(milliseconds, new [] { ReadingLengthAsyncResult, ReadingBlockAsyncResult });
         }
 
-        private IAsyncResult WritingAsyncResult;
-        bool? ProcessPendingWriteFinishPendingWrite(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        protected sealed override byte[] ProcessPendingWriteNextBlocksConvertToBytes(List<BlockToWrite> blocksToWrite)
         {
-            if(WritingAsyncResult.IsCompleted)
+            if(blocksToWrite.Count == 1)
             {
-                try
-                {
-                    OutputStream.EndWrite(WritingAsyncResult);
-                    WritingAsyncResult = null;
-                    return false;
-                }
-                catch(Exception e)
-                {
-                    throw new ApplicationException("Failed to write block", e);
-                }
-            }
-
-            return null;
-        }
-        bool? ProcessPendingWriteNextBlockToWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
-        {
-            BlockToWrite blockToWrite;
-            bool taken = false;
-            try
-            {
-                taken = queueToWrite.TryTake(out blockToWrite);
-            }
-            catch(InvalidOperationException)
-            {
-                if(queueToWrite.IsCompleted)
-                {
-                    WritingCompleted = true;
-                    return false;
-                }
-                else
-                {
-                    throw;
-                }
-            }
-                    
-            if(taken)
-            {
-                WritingAsyncResult = OutputStream.BeginWrite(blockToWrite.Data, 0, blockToWrite.Data.Length, null, null);
-                return false;
+                return blocksToWrite[0].Data;
             }
             else
             {
-                if(queueToWrite.IsCompleted)
+                using(var blockStream = new MemoryStream((int)(blocksToWrite.Select(x => x.Data.LongLength).Sum())))
                 {
-                    WritingCompleted = true;
-                    return false;
+                    foreach (var block in blocksToWrite)
+                    {
+                        blockStream.Write(block.Data, 0, block.Data.Length);
+                    }
+
+                    return blockStream.ToArray();
                 }
             }
-
-            return null;
-        }
-        protected sealed override bool? ProcessPendingWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
-        {
-            if(!WritingCompleted || WritingAsyncResult != null)
-            {
-                return new StepsRunner(
-                    new StepsRunner.Step(() => WritingAsyncResult != null, ProcessPendingWriteFinishPendingWrite),
-                    new StepsRunner.Step(ProcessPendingWriteNextBlockToWriteIfAny)
-                ).Run(queueToProcess, queueToWrite);
-            }
-
-            return null;
         }
 
         BlockToProcess ReadingDataPrevious;

@@ -29,6 +29,10 @@ namespace compressor.Processor.Payload
         {
             RunIdleSleep(1000);
         }
+        protected override void RunIdleSleep(int milliseconds, IEnumerable<IAsyncResult> waitables)
+        {
+            base.RunIdleSleep(milliseconds, new [] { WritingAsyncResult }.Concat(waitables));
+        }
 
         public override void Run(QueueToProcess quequeToProcess, QueueToWrite queueToWrite)
         {
@@ -43,7 +47,95 @@ namespace compressor.Processor.Payload
         }
 
         protected bool WritingCompleted = false;
-        protected abstract bool? ProcessPendingWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite);
+        IAsyncResult WritingAsyncResult;
+        bool? ProcessPendingWriteFinishPendingWrite(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        {
+            if(WritingAsyncResult.IsCompleted)
+            {
+                try
+                {
+                    OutputStream.EndWrite(WritingAsyncResult);
+                    WritingAsyncResult = null;
+                    return false;
+                }
+                catch(Exception e)
+                {
+                    throw new ApplicationException("Failed to write block", e);
+                }
+            }
+
+            return null;
+        }
+        protected abstract byte[] ProcessPendingWriteNextBlocksConvertToBytes(List<BlockToWrite> blocksToWrite);
+        bool? ProcessPendingWriteNextBlocksToWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        {
+            var blocksToWrite = new List<BlockToWrite>(Settings.MaxBlocksToWriteAtOnce);
+            while(blocksToWrite.Count < blocksToWrite.Capacity)
+            {
+                BlockToWrite blockToWrite;
+                bool taken = false;
+                try
+                {
+                    taken = queueToWrite.TryTake(out blockToWrite);
+                }
+                catch(InvalidOperationException)
+                {
+                    if(queueToWrite.IsCompleted)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                if(taken)
+                {
+                    blocksToWrite.Add(blockToWrite);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if(blocksToWrite.Count > 0)
+            {
+                try
+                {
+                    var block = ProcessPendingWriteNextBlocksConvertToBytes(blocksToWrite);
+                    WritingAsyncResult = OutputStream.BeginWrite(block, 0, block.Length, null, null);
+                    return false;
+                }
+                catch(Exception e)
+                {
+                    throw new ApplicationException("Failed to write block", e);
+                }
+            }
+            else
+            {
+                if(queueToWrite.IsCompleted)
+                {
+                    WritingCompleted = true;
+                    return false;
+                }
+
+                return null;
+            }
+        }
+        protected bool? ProcessPendingWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        {
+            if(!WritingCompleted || WritingAsyncResult != null)
+            {
+                return new StepsRunner(
+                    new StepsRunner.Step(() => WritingAsyncResult != null, ProcessPendingWriteFinishPendingWrite),
+                    new StepsRunner.Step(ProcessPendingWriteNextBlocksToWriteIfAny)
+                ).Run(queueToProcess, queueToWrite);
+            }
+
+            return null;
+        }
 
         bool ProcessingCompleted = false;
         BlockToWrite ProcessingData;
