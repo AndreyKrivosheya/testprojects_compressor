@@ -8,9 +8,9 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor
 {
-    class ProcessorFromArchive: Processor<Payload.FactoryReadWriteFromArchiveToBinary, Payload.FactoryDecompress>
+    class ProcessorParallelFromArchive: ProcessorParallel<Payload.FactoryReadProcessWriteFromArchive>
     {
-        public ProcessorFromArchive(SettingsProvider settings, Stream inputStream, Stream outputStream)
+        public ProcessorParallelFromArchive(SettingsProvider settings, Stream inputStream, Stream outputStream)
             : base(settings, inputStream, outputStream)
         {
         }

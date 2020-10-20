@@ -9,7 +9,7 @@ namespace compressor
     {
         public Processor.Processor Create(SettingsProvider settings, Stream inputStream, Stream outputStream)
         {
-            return new Processor.ProcessorFromArchive(settings, inputStream, outputStream);
+            return new Processor.ProcessorParallelFromArchive(settings, inputStream, outputStream);
         }
     }
 }
