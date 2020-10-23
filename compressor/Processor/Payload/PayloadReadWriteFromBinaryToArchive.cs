@@ -17,9 +17,9 @@ namespace compressor.Processor.Payload
         {
         }
 
-        protected override void RunIdleSleep(int milliseconds)
+        protected override void RunIdleSleep(int milliseconds, IEnumerable<IAsyncResult> waitables)
         {
-            RunIdleSleep(milliseconds, new [] { ReadingAsyncResult});
+            base.RunIdleSleep(milliseconds, new [] { ReadingAsyncResult }.Concat(waitables));
         }
 
         protected sealed override byte[] ProcessPendingWriteNextBlocksConvertToBytes(List<BlockToWrite> blocksToWrite)
@@ -50,7 +50,7 @@ namespace compressor.Processor.Payload
         BlockToProcess ReadingDataPrevious;
         BlockToProcess ReadingData;
         private IAsyncResult ReadingAsyncResult;
-        bool? ProcessPendingReadAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingReadAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             try
             {
@@ -58,7 +58,7 @@ namespace compressor.Processor.Payload
                 {
                     ReadingDataPrevious = ReadingData;
                     ReadingData = null;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
             }
             catch(InvalidOperationException)
@@ -69,13 +69,13 @@ namespace compressor.Processor.Payload
                     // probably there's an exception on another worker thread
                     ReadingDataPrevious = ReadingData;
                     ReadingData = null;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
-        bool? ProcessPendingReadFinishPendingRead(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingReadFinishPendingRead(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(ReadingAsyncResult.IsCompleted)
             {
@@ -107,7 +107,7 @@ namespace compressor.Processor.Payload
                         ReadingCompleted = true;
                     }
                     ReadingAsyncResult = null;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
                 catch(Exception e)
                 {
@@ -115,9 +115,9 @@ namespace compressor.Processor.Payload
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
-        bool? ProcessPendingReadStartNextRead(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingReadStartNextRead(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             var data = Tuple.Create(Settings.BlockSize, new byte[Settings.BlockSize]);
             try
@@ -125,14 +125,14 @@ namespace compressor.Processor.Payload
                 try
                 {
                     ReadingAsyncResult = InputStream.BeginRead(data.Item2, 0, data.Item2.Length, null, data);
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
                 catch(IOException)
                 {
                     // reading past stream end, means we have read all the stream
                     queueToProcess.CompleteAdding();
                     ReadingCompleted = true;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
             }
             catch(Exception e)
@@ -140,18 +140,27 @@ namespace compressor.Processor.Payload
                 throw new ArgumentNullException("Failed to read block", e);
             }
         }
-        protected sealed override bool? ProcessPendingReadIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        protected sealed override RunOnceResult ProcessPendingReadIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(!ReadingCompleted || ReadingData != null || ReadingAsyncResult != null)
             {
-                return new StepsRunner(
-                    new StepsRunner.Step(() => ReadingData != null, ProcessPendingReadAddToQueue),
-                    new StepsRunner.Step(() => ReadingAsyncResult != null, ProcessPendingReadFinishPendingRead),
-                    new StepsRunner.Step(ProcessPendingReadStartNextRead)
-                ).Run(queueToProcess, queueToWrite);
+                if(ReadingData != null)
+                {
+                    return ProcessPendingReadAddToQueue(queueToProcess, queueToWrite);
+                }
+                else if(ReadingAsyncResult != null)
+                {
+                    return ProcessPendingReadFinishPendingRead(queueToProcess, queueToWrite);
+                }
+                else
+                {
+                    return ProcessPendingReadStartNextRead(queueToProcess, queueToWrite);
+                };
             }
-
-            return null;
+            else
+            {
+                return RunOnceResult.DoneNothing;
+            }
         }
     };
 }

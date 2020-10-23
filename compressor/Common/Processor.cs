@@ -1,13 +1,5 @@
 using System;
-using System.IO;
-using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Threading;
-
-using compressor.Common;
-using compressor.Processor.Payload;
-using compressor.Processor.Queue;
-using compressor.Processor.Settings;
 
 namespace compressor.Common
 {

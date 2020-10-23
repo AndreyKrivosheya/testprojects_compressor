@@ -11,21 +11,22 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor
 {
-    abstract class ProcessorParallel<TaskFactoryReadProcessWrite>: Processor
-        where TaskFactoryReadProcessWrite: Payload.FactoryReadProcessWrite, new()
+    abstract class ProcessorParallel: Processor
     {
-        public ProcessorParallel(SettingsProvider settings, Stream inputStream, Stream outputStream)
+        public ProcessorParallel(SettingsProvider settings, Stream inputStream, Stream outputStream, Factory payloadFactory)
             : base(settings, inputStream, outputStream)
         {
+            this.PayloadFactory = payloadFactory;
         }
 
+        readonly Factory PayloadFactory;
+        
         protected sealed override void RunOnThread()
         {
             var queueSize = Settings.MaxQueueSize;
             var queueToProcess = new QueueToProcess(queueSize);
             var queueToWrite = new QueueToWrite(queueSize);
 
-            var payloadFactory = new TaskFactoryReadProcessWrite();
             var concurrency = Settings.MaxConcurrency;
             var threads = new Thread[concurrency - 1];
             var threadsPayloads = new Payload.Payload[concurrency - 1];
@@ -34,20 +35,16 @@ namespace compressor.Processor
             // spawn processors, if needed
             for(int i = 0; i < concurrency - 1; i++)
             {
-                threadsPayloads[i] = payloadFactory.CreateCompressDecompress(Settings);
+                threadsPayloads[i] = PayloadFactory.CreateCompressDecompress(Settings);
                 threads[i] = new Thread((object task) => {
-                    var taskTyped = task as Payload.Payload;
-                    if(taskTyped != null)
+                    try
                     {
-                        try
-                        {
-                            taskTyped.Run(queueToProcess, queueToWrite);
-                        }
-                        catch(Exception e)
-                        {
-                            System.Diagnostics.Debug.WriteLine(e);
-                            threadsErrors[i] = ExceptionDispatchInfo.Capture(e);
-                        }
+                        ((Payload.Payload)task).Run(queueToProcess, queueToWrite);
+                    }
+                    catch(Exception e)
+                    {
+                        System.Diagnostics.Debug.WriteLine(e);
+                        threadsErrors[i] = ExceptionDispatchInfo.Capture(e);
                     }
                 }) { IsBackground = true, Name = string.Format("Processor[{0}]: Process worker", i) };
                 threads[i].Start(threadsPayloads[i]);
@@ -55,7 +52,7 @@ namespace compressor.Processor
             // run reader/processor/writer
             try
             {
-                payloadFactory.CreateReadCompressDecompressWrite(Settings, InputStream, OutputStream, threads).Run(queueToProcess, queueToWrite);
+                PayloadFactory.CreateReadCompressDecompressWrite(Settings, InputStream, OutputStream, threads).Run(queueToProcess, queueToWrite);
             }
             catch(Exception)
             {

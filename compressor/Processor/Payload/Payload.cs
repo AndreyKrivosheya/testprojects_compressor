@@ -22,13 +22,10 @@ namespace compressor.Processor.Payload
         {
             CancellationTokenSource.Cancel();
         }
+ 
         protected virtual void RunIdleYeild()
         {
             Thread.Yield();
-        }
-        protected virtual void RunIdleSleep(int milliseconds)
-        {
-            RunIdleSleep(milliseconds, new WaitHandle[] {});
         }
         protected void RunIdleSleep(int milliseconds, IEnumerable<WaitHandle> waitables)
         {
@@ -38,39 +35,44 @@ namespace compressor.Processor.Payload
         {
             RunIdleSleep(milliseconds, waitables.Where(x => x != null).Select(x => x.AsyncWaitHandle));
         }
-        protected virtual void RunIdleSleep()
+        protected void RunIdleSleep()
         {
-            RunIdleSleep(100);
+            RunIdleSleep(1000, Enumerable.Empty<IAsyncResult>());
+        }
+
+        protected enum RunOnceResult
+        {
+            Finished,
+            WorkDoneButNotFinished,
+            DoneNothing,
+        };
+        protected virtual RunOnceResult RunOnce(QueueToProcess quequeToProcess, QueueToWrite queueToWrite)
+        {
+            return RunOnceResult.Finished;
         }
         public virtual void Run(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
-            while(!CancellationTokenSource.IsCancellationRequested)
+            var finished = false;
+            while(!finished && !CancellationTokenSource.IsCancellationRequested)
             {
-                var result = RunOnce(queueToProcess, queueToWrite);
-                // if anything happened, and run cycle wasn't empty
-                if(result.HasValue)
+                switch(RunOnce(queueToProcess, queueToWrite))
                 {
-                    // if runcycle competed task
-                    if(result.Value)
-                    {
+                    case RunOnceResult.Finished:
+                        // runcycle competed payload
+                        finished = true;
                         break;
-                    }
-                    else
-                    {
-                        // to the next runcycle
+                    case RunOnceResult.WorkDoneButNotFinished:
+                        // some work was done, but that doesn't completed payload
+                        // ... to the next runcycle
                         RunIdleYeild();
-                    }
-                }
-                else
-                {
-                    // be gentle with the CPU, don't waist all onto checking if there's nothing to do
-                    RunIdleSleep();
+                        break;
+                    case RunOnceResult.DoneNothing:
+                        // spent the cycle checking if anything is ready to work on
+                        // ... be gentle with the CPU, don't waste all onto checking if there's nothing to do
+                        RunIdleSleep();
+                        break;
                 }
             }
-        }
-        public virtual bool? RunOnce(QueueToProcess quequeToProcess, QueueToWrite queueToWrite)
-        {
-            return true;
         }
     }
 }

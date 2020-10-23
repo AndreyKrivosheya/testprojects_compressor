@@ -15,13 +15,7 @@ namespace compressor
             Console.WriteLine("compressor.exe compress|decompress in out");
         }
 
-        static ReturnCode RunProcessor<Factory>(string pathIn, string pathOut)
-            where Factory: ProcessorFactory, new()
-        {
-            return RunProcessor<Factory>(SettingsProviderFromEnvironment.Instance, pathIn, pathOut);
-        }
-        static ReturnCode RunProcessor<Factory>(SettingsProvider settings, string pathIn, string pathOut)
-            where Factory: ProcessorFactory, new()
+        static ReturnCode RunProcessor(SettingsProvider settings, string pathIn, string pathOut, Func<SettingsProvider, Stream, Stream, Processor.Processor> processorFactory)
         {
             var
             stopWatch = new System.Diagnostics.Stopwatch();
@@ -43,7 +37,9 @@ namespace compressor
                             outStream = new FileStream(pathOut, FileMode.CreateNew);
                         }
                     
-                        new Factory().Create(settings, inStream, outStream).Run();
+                        var
+                        processorToRun = processorFactory(settings, inStream, outStream);
+                        processorToRun.Run();
                     }
                     finally
                     {
@@ -63,37 +59,37 @@ namespace compressor
 
             return ReturnCode.Success;
         }
+        static ReturnCode RunProcessor(string pathIn, string pathOut, Func<SettingsProvider, Stream, Stream, Processor.Processor> processorfactory)
+        {
+            return RunProcessor(SettingsProviderFromEnvironment.Instance, pathIn, pathOut, processorfactory);
+        }
+
         static ReturnCode MainWithTypedReturn(string[] args)
         {
             try
             {
-                return new[] {
-                    Tuple.Create<Func<string[], bool>, Func<string[], ReturnCode>>(
-                        (arguments) => arguments.Length < 3 || arguments.Length > 3,
-                        (arguments) => {
-                            Usage();
-                            return ReturnCode.Error;
-                        }),
-                    Tuple.Create<Func<string[], bool>, Func<string[], ReturnCode>>(
-                        (arguments) => true,
-                        (arguments) => {
-                            return new [] { 
-                                Tuple.Create<Func<string, bool>, Func<string, string, string, ReturnCode>>(
-                                    (cmd) => string.Equals("compress", cmd, StringComparison.InvariantCultureIgnoreCase),
-                                    (cmd, pathIn, pathOut) => RunProcessor<ProcessorFactoryToArchive>(pathIn, pathOut)),
-                                Tuple.Create<Func<string, bool>, Func<string, string, string, ReturnCode>>(
-                                    (cmd) => string.Equals("decompress", cmd, StringComparison.InvariantCultureIgnoreCase),
-                                    (cmd, pathIn, pathOut) => RunProcessor<ProcessorFactoryFromArchive>(pathIn, pathOut)),
-                                Tuple.Create<Func<string, bool>, Func<string, string, string, ReturnCode>>(
-                                    (cmd) => true,
-                                    (cmd, fileIn, fileOut) => {
-                                        Console.WriteLine("Command '{0}' is unknown.", cmd);
-                                        Usage();
-                                        return ReturnCode.Error;
-                                    } )
-                            }.First(x => x.Item1(arguments[0])).Item2(arguments[0], arguments[1], arguments[2]);
-                        })
-                }.First(x => x.Item1(args)).Item2(args);
+                if(args.Length < 3 || args.Length > 3)
+                {
+                    Usage();
+                    return ReturnCode.Error;
+                }
+                else
+                {
+                    if(string.Equals("compress", args[0], StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return RunProcessor(args[1], args[2], (settings, input, output) => new Processor.ProcessorParallelCompress(settings, input, output));
+                    }
+                    else if(string.Equals("decompress", args[0], StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return RunProcessor(args[1], args[2], (settings, input, output) => new Processor.ProcessorParallelDecompress(settings, input, output));
+                    }
+                    else
+                    {
+                        Console.WriteLine("Command '{0}' is unknown.", args[0]);
+                        Usage();
+                        return ReturnCode.Error;
+                    }
+                }
             }
             catch(Exception e)
             {

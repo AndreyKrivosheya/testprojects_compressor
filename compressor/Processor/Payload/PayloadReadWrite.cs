@@ -25,15 +25,6 @@ namespace compressor.Processor.Payload
 
         protected readonly IEnumerable<Thread> Threads;
 
-        protected override void RunIdleSleep()
-        {
-            RunIdleSleep(1000);
-        }
-        protected override void RunIdleSleep(int milliseconds, IEnumerable<IAsyncResult> waitables)
-        {
-            base.RunIdleSleep(milliseconds, new [] { WritingAsyncResult }.Concat(waitables));
-        }
-
         public override void Run(QueueToProcess quequeToProcess, QueueToWrite queueToWrite)
         {
             try
@@ -48,7 +39,7 @@ namespace compressor.Processor.Payload
 
         protected bool WritingCompleted = false;
         IAsyncResult WritingAsyncResult;
-        bool? ProcessPendingWriteFinishPendingWrite(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingWriteFinishPendingWrite(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(WritingAsyncResult.IsCompleted)
             {
@@ -56,7 +47,7 @@ namespace compressor.Processor.Payload
                 {
                     OutputStream.EndWrite(WritingAsyncResult);
                     WritingAsyncResult = null;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
                 catch(Exception e)
                 {
@@ -64,10 +55,10 @@ namespace compressor.Processor.Payload
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
         protected abstract byte[] ProcessPendingWriteNextBlocksConvertToBytes(List<BlockToWrite> blocksToWrite);
-        bool? ProcessPendingWriteNextBlocksToWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingWriteNextBlocksToWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             var blocksToWrite = new List<BlockToWrite>(Settings.MaxBlocksToWriteAtOnce);
             while(blocksToWrite.Count < blocksToWrite.Capacity)
@@ -106,7 +97,7 @@ namespace compressor.Processor.Payload
                 {
                     var block = ProcessPendingWriteNextBlocksConvertToBytes(blocksToWrite);
                     WritingAsyncResult = OutputStream.BeginWrite(block, 0, block.Length, null, null);
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
                 catch(Exception e)
                 {
@@ -118,29 +109,33 @@ namespace compressor.Processor.Payload
                 if(queueToWrite.IsCompleted)
                 {
                     WritingCompleted = true;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
 
-                return null;
+                return RunOnceResult.DoneNothing;
             }
         }
-        protected bool? ProcessPendingWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        protected RunOnceResult ProcessPendingWriteIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(!WritingCompleted || WritingAsyncResult != null)
             {
-                return new StepsRunner(
-                    new StepsRunner.Step(() => WritingAsyncResult != null, ProcessPendingWriteFinishPendingWrite),
-                    new StepsRunner.Step(ProcessPendingWriteNextBlocksToWriteIfAny)
-                ).Run(queueToProcess, queueToWrite);
+                if(WritingAsyncResult != null)
+                {
+                    return ProcessPendingWriteFinishPendingWrite(queueToProcess, queueToWrite);
+                }
+                else
+                {
+                    return ProcessPendingWriteNextBlocksToWriteIfAny(queueToProcess, queueToWrite);
+                };
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
 
         bool ProcessingCompleted = false;
         BlockToWrite ProcessingData;
         protected abstract BlockToWrite CompressDecompressBlock(BlockToProcess data);
-        bool? ProcessPendingCompressDecompressAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingCompressDecompressAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(ProcessingData.WaitAllPreviousBlocksAddedToQueue(CancellationTokenSource.Token))
             {
@@ -149,7 +144,7 @@ namespace compressor.Processor.Payload
                     if(queueToWrite.TryAdd(ProcessingData, CancellationTokenSource.Token))
                     {
                         ProcessingData = null;
-                        return false;
+                        return RunOnceResult.WorkDoneButNotFinished;
                     }
                 }
                 catch(InvalidOperationException)
@@ -159,7 +154,7 @@ namespace compressor.Processor.Payload
                         // something wrong: queue-to-write is closed for additions, but there's block outstanding
                         // probably there's an exception on another worker thread
                         ProcessingData = null;
-                        return false;
+                        return RunOnceResult.WorkDoneButNotFinished;
                     }
                     else
                     {
@@ -168,9 +163,9 @@ namespace compressor.Processor.Payload
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
-        bool? ProcessPendingCompressDecompressNextBlockIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingCompressDecompressNextBlockIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(queueToProcess.IsCompleted)
             {
@@ -178,10 +173,10 @@ namespace compressor.Processor.Payload
                 {
                     ProcessingCompleted = true;
                     queueToWrite.CompleteAdding();
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
 
-                return null;
+                return RunOnceResult.DoneNothing;
             }
             else
             {
@@ -197,7 +192,7 @@ namespace compressor.Processor.Payload
                     {
                         if(queueToProcess.IsCompleted)
                         {
-                            return false;
+                            return RunOnceResult.WorkDoneButNotFinished;
                         }
                         else
                         {
@@ -210,7 +205,7 @@ namespace compressor.Processor.Payload
                         try
                         {
                             ProcessingData = CompressDecompressBlock(blockToProcess);
-                            return false;
+                            return RunOnceResult.WorkDoneButNotFinished;
                         }
                         catch(Exception e)
                         {
@@ -219,51 +214,55 @@ namespace compressor.Processor.Payload
                     }
                 }
 
-                return null;
+                return RunOnceResult.DoneNothing;
             }
         }
-        bool? ProcessPendingCompressDecompressIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingCompressDecompressIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(!ProcessingCompleted || ProcessingData != null)
             {
-                return new StepsRunner(
-                    new StepsRunner.Step(() => ProcessingData != null, ProcessPendingCompressDecompressAddToQueue),
-                    new StepsRunner.Step(ProcessPendingCompressDecompressNextBlockIfAny)
-                ).Run(queueToProcess, queueToWrite);
+                if(ProcessingData != null)
+                {
+                    return ProcessPendingCompressDecompressAddToQueue(queueToProcess, queueToWrite);
+                }
+                else
+                {
+                    return ProcessPendingCompressDecompressNextBlockIfAny(queueToProcess, queueToWrite);
+                }
             }
             else
             {
-                return null;
+                return RunOnceResult.DoneNothing;
             }
         }
 
         protected bool ReadingCompleted = false;
-        protected abstract bool? ProcessPendingReadIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite);
+        protected abstract RunOnceResult ProcessPendingReadIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite);
 
-        public sealed override bool? RunOnce(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        protected sealed override RunOnceResult RunOnce(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(ReadingCompleted && ProcessingCompleted && WritingCompleted)
             {
-                return true;
+                return RunOnceResult.Finished;
             }
 
             // if queue to process is getting bigger, need to engage
             // or if this processor is the only left, need to engage too
             var pendingProcessors = queueToProcess.IsAlmostFull() || !Threads.Where(x => x != Thread.CurrentThread).Any(x => x.IsAlive) ?
-                new Func<QueueToProcess, QueueToWrite, bool?>[] {
+                new Func<QueueToProcess, QueueToWrite, RunOnceResult>[] {
                     ProcessPendingWriteIfAny, ProcessPendingCompressDecompressIfAny, ProcessPendingReadIfAny }: 
-                new Func<QueueToProcess, QueueToWrite, bool?>[] {
+                new Func<QueueToProcess, QueueToWrite, RunOnceResult>[] {
                     ProcessPendingWriteIfAny, ProcessPendingReadIfAny, ProcessPendingCompressDecompressIfAny }; 
             foreach(var pendingProcessor in pendingProcessors)
             {
                 var pendingProcessingResult = pendingProcessor(queueToProcess, queueToWrite);
-                if(pendingProcessingResult.HasValue)
+                if(pendingProcessingResult != RunOnceResult.DoneNothing)
                 {
-                    return pendingProcessingResult.Value;
+                    return pendingProcessingResult;
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         }
     };
 }

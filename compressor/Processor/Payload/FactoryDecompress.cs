@@ -1,12 +1,20 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+
 using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    sealed class FactoryDecompress: FactoryCompressDecompress
+    class FactoryDecompress: Factory
     {
-        public PayloadCompressDescompress Create(SettingsProvider settings)
+        public PayloadCompressDescompress CreateCompressDecompress(SettingsProvider settings)
         {
             return new PayloadDecompress(settings);
+        }
+        public PayloadReadWrite CreateReadCompressDecompressWrite(SettingsProvider settings, Stream inputStream, Stream outputStream, IEnumerable<Thread> threads)
+        {
+            return new PayloadReadWriteFromArchiveToBinary(settings, inputStream, outputStream, threads);
         }
     }
 }

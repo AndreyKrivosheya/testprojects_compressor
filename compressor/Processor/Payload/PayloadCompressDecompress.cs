@@ -19,7 +19,7 @@ namespace compressor.Processor.Payload
 
         bool ProcessingCompleted;
         BlockToWrite ProcessingData;
-        bool? ProcessPendingAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingAddToQueue(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(ProcessingData.WaitAllPreviousBlocksAddedToQueue(Timeout.Infinite, CancellationTokenSource.Token))
             {
@@ -28,7 +28,7 @@ namespace compressor.Processor.Payload
                     if(queueToWrite.TryAdd(ProcessingData, Timeout.Infinite, CancellationTokenSource.Token))
                     {
                         ProcessingData = null;
-                        return false;
+                        return RunOnceResult.WorkDoneButNotFinished;
                     }
                 }
                 catch(InvalidOperationException)
@@ -46,9 +46,10 @@ namespace compressor.Processor.Payload
                     }
                 }
             }
-            return null;
+
+            return RunOnceResult.DoneNothing;
         }
-        bool? ProcessPendingNextBlockIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        RunOnceResult ProcessPendingNextBlockIfAny(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             BlockToProcess blockToProcess = null;
             bool taken = false;
@@ -61,7 +62,7 @@ namespace compressor.Processor.Payload
                 if(queueToProcess.IsCompleted)
                 {
                     ProcessingCompleted = true;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
                 else
                 {
@@ -72,31 +73,35 @@ namespace compressor.Processor.Payload
             if(taken)
             {
                 ProcessingData = Processor(blockToProcess);
-                return false;
+                return RunOnceResult.WorkDoneButNotFinished;
             }
             else
             {
                 if(queueToProcess.IsCompleted)
                 {
                     ProcessingCompleted = true;
-                    return false;
+                    return RunOnceResult.WorkDoneButNotFinished;
                 }
             }
 
-            return null;
+            return RunOnceResult.DoneNothing;
         } 
-        public sealed override bool? RunOnce(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
+        protected sealed override RunOnceResult RunOnce(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             if(!ProcessingCompleted || ProcessingData != null)
             {
-                return new StepsRunner(
-                    new StepsRunner.Step(() => ProcessingData != null, ProcessPendingAddToQueue),
-                    new StepsRunner.Step(ProcessPendingNextBlockIfAny)
-                ).Run(queueToProcess, queueToWrite);
+                if(ProcessingData != null)
+                {
+                    return ProcessPendingAddToQueue(queueToProcess, queueToWrite);
+                }
+                else
+                {
+                    return ProcessPendingNextBlockIfAny(queueToProcess, queueToWrite);
+                }
             }
             else
             {
-                return true;
+                return RunOnceResult.Finished;
             }
         }
     }
