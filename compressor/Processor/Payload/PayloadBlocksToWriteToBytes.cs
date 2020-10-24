@@ -10,12 +10,14 @@ namespace compressor.Processor.Payload
 {
     abstract class PayloadBlocksToWriteToBytes : Payload
     {
-        public PayloadBlocksToWriteToBytes(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
+        public PayloadBlocksToWriteToBytes(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Func<List<BlockToWrite>, byte[]> converter)
             : base(cancellationTokenSource, settings)
         {
+            this.Converter = converter;
         }
 
-        protected abstract byte[] ConvertBlocksToBytes(List<BlockToWrite> blocks);
+        readonly Func<List<BlockToWrite>, byte[]> Converter;
+
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
             if(parameter == null)
@@ -29,7 +31,7 @@ namespace compressor.Processor.Payload
                 throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not BlockToProcess", parameter), "parameter");
             }
 
-            return new PayloadResultContinuationPending(ConvertBlocksToBytes(blocks));
+            return new PayloadResultContinuationPending(Converter(blocks));
         }
     }
 }

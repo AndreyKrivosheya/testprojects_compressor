@@ -10,6 +10,10 @@ namespace compressor.Common.Payload.Streams
             : base(cancellationTokenSource, stream)
         {
             this.ExceptionProducer = exceptionProducer;
+            if(this.ExceptionProducer == null)
+            {
+                this.ExceptionProducer = (e) => null;
+            }
         }
 
         readonly Func<Exception, Exception> ExceptionProducer;
@@ -25,7 +29,15 @@ namespace compressor.Common.Payload.Streams
                 }
                 catch(Exception e)
                 {
-                    throw new ApplicationException("Failed to write block", e);
+                    var eNew = ExceptionProducer(e);
+                    if(eNew != null)
+                    {
+                        throw eNew;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 

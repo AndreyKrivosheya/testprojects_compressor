@@ -6,7 +6,7 @@ namespace compressor.Common.Payload.Streams
 {
     class PayloadReadBytesExactlyStart: PayloadReadBytesStart
     {
-        public PayloadReadBytesExactlyStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public PayloadReadBytesExactlyStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
             : base(cancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd)
         {
         }

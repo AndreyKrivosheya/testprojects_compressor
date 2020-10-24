@@ -10,21 +10,31 @@ namespace compressor.Processor.Queue
         {
         }
 
+        public bool Last
+        {
+            get
+            {
+                return Awaiter.Last;
+            }
+        }
+
         public void NotifyAddedToQueue()
         {
             Awaiter.NotifyAddedToQueue();
         }
-        public bool WaitAllPreviousBlocksAddedToQueue(int milliseconds, CancellationToken cancellationToken)
+
+        public bool WaitAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return Awaiter.WaitAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken);
+            return Awaiter.WaitAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken);
         }
         public bool WaitAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
         {
             return Awaiter.WaitAllPreviousBlocksAddedToQueue(cancellationToken);
         }
-        public bool WaitThisAndAllPreviousBlocksAddedToQueue(int milliseconds, CancellationToken cancellationToken)
+
+        public bool WaitThisAndAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return Awaiter.WaitThisAndAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken);
+            return Awaiter.WaitThisAndAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken);
         }
         public bool WaitThisAndAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
         {

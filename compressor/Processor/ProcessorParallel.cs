@@ -25,13 +25,13 @@ namespace compressor.Processor
             var queueToProcess = new QueueToProcess(queueSize);
             var queueToWrite = new QueueToWrite(queueSize);
 
-            var concurrency = Settings.MaxConcurrency;
-            var threads = new Thread[concurrency - 1];
-            var threadsPayloads = new Common.Payload.Payload[concurrency - 1];
-            var threadsErrors = new ExceptionDispatchInfo[concurrency - 1];
+            var concurrency = Settings.MaxConcurrency - 1;
+            var threads = new Thread[concurrency];
+            var threadsPayloads = new Common.Payload.Payload[concurrency];
+            var threadsErrors = new ExceptionDispatchInfo[concurrency];
 
             // spawn processors, if needed
-            for(int i = 0; i < concurrency - 1; i++)
+            for(int i = 0; i < concurrency; i++)
             {
                 // create process (compress/decompress) payload
                 threadsPayloads[i] = PayloadFactory.CreateProcess(queueToProcess, queueToWrite);
@@ -58,7 +58,7 @@ namespace compressor.Processor
             try
             {
                 // create read-process-write payload
-                var payload = PayloadFactory.CreateReadProcessWrite(InputStream, OutputStream, queueToProcess, queueToWrite, threads);
+                var payload = PayloadFactory.CreateReadProcessWrite(InputStream, OutputStream, queueToProcess, queueToWrite);
                 // and run it on this thread
                 var payloadResult = payload.Run();
                 if(payloadResult.Status == Common.Payload.PayloadResultStatus.Failed)
@@ -69,20 +69,21 @@ namespace compressor.Processor
             catch(Exception)
             {
                 // abort processors payloads
-                for(var i = 0; i < concurrency - 1; i++)
+                PayloadFactory.CancellationTokenSource.Cancel();
+                // and wait they have finished
+                for(var i = 0; i < concurrency; i++)
                 {
-                    threadsPayloads[i].Cancel();
                     threads[i].Join();
                 }
                 
                 throw;
             }
             // wait processors are all finshed (should already be)
-            for(int i = 0; i < concurrency - 1; i++)
+            for(int i = 0; i < concurrency; i++)
             {
                 threads[i].Join();
             }
-            // ... report exceptions if any
+            // report exceptions if any
             var errors = threadsErrors.Where(x => x != null);
             if(errors.Any())
             {

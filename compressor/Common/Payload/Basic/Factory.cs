@@ -13,6 +13,11 @@ namespace compressor.Common.Payload.Basic
 
         readonly CancellationTokenSource CancellationTokenSource;
 
+        public Common.Payload.Payload Succeed()
+        {
+            return new PayloadSucceed(CancellationTokenSource);
+        }
+        
         public Common.Payload.Payload ReturnConstant(object constant)
         {
             return new PayloadReturnConstant(CancellationTokenSource, constant);
@@ -35,6 +40,15 @@ namespace compressor.Common.Payload.Basic
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue);
         }
 
+        public Common.Payload.Payload ConditionalOnceAndForever(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)
+        {
+            return new PayloadConditionalOnceAndForever(CancellationTokenSource, condition, payloadIfTrue);
+        }
+        public Common.Payload.Payload ConditionalOnceAndForever(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
+        {
+            return new PayloadConditionalOnceAndForever(CancellationTokenSource, condition, payloadIfTrue);
+        }
+
         public Common.Payload.Payload Sequence(IEnumerable<Common.Payload.Payload> payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
@@ -46,25 +60,21 @@ namespace compressor.Common.Payload.Basic
 
         public Common.Payload.Payload Chain(IEnumerable<Common.Payload.Payload> payloads)
         {
-            return new PayloadChain(CancellationTokenSource, false, payloads);
+            return new PayloadChain(CancellationTokenSource, payloads);
         }
         public Common.Payload.Payload Chain(params Common.Payload.Payload[] payloads)
         {
-            return new PayloadChain(CancellationTokenSource, false, payloads);
+            return new PayloadChain(CancellationTokenSource, payloads);
         }
 
-        public Common.Payload.Payload ChainConvertingSuceededToPending(IEnumerable<Common.Payload.Payload> payloads)
-        {
-            return new PayloadChain(CancellationTokenSource, true, payloads);
-        }
-        public Common.Payload.Payload ChainConvertingSuceededToPending(params Common.Payload.Payload[] payloads)
-        {
-            return new PayloadChain(CancellationTokenSource, true, payloads);
-        }
-
-        public Common.Payload.Payload Repeat(Payload payload)
+        public Common.Payload.Payload Repeat(Common.Payload.Payload payload)
         {
             return new PayloadRepeat(CancellationTokenSource, payload);
+        }
+   
+        public Common.Payload.Payload WhenFinished(Common.Payload.Payload payload, Common.Payload.Payload payloadAfterPayloadFinished)
+        {
+            return new PayloadWhenFinished(CancellationTokenSource, payload, payloadAfterPayloadFinished);
         }
    }
 }

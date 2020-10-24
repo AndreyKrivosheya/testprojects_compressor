@@ -6,12 +6,12 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadConditional: Payload
     {
-        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTure, Payload payloadIfFalse)
+        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue, Payload payloadIfFalse)
             : base(cancellationTokenSource)
         {
             this.Condition = condition;
-            this.PayloadIfTrueCurrent = this.PayloadIfTrue = payloadIfTure;
-            this.PayloadIfFalseCurrent = this.PayloadIfFalse = payloadIfFalse;
+            this.PayloadIfTrue = payloadIfTrue;
+            this.PayloadIfFalse = payloadIfFalse;
         }
         public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue)
             : this(cancellationTokenSource, condition, payloadIfTrue, null)
@@ -28,18 +28,11 @@ namespace compressor.Common.Payload.Basic
 
         readonly Func<object, bool> Condition;
         readonly Payload PayloadIfTrue;
-        Payload PayloadIfTrueCurrent;
         readonly Payload PayloadIfFalse;
-        Payload PayloadIfFalseCurrent;
         
-        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
-        {
-            return new[] { PayloadIfTrue, PayloadIfFalse };
-        }
-
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            if(PayloadIfTrueCurrent == null && PayloadIfFalseCurrent == null)
+            if(PayloadIfTrue == null && PayloadIfFalse == null)
             {
                 return new PayloadResultSucceeded();
             }
@@ -47,18 +40,9 @@ namespace compressor.Common.Payload.Basic
             {
                 if(Condition(parameter))
                 {
-                    if(PayloadIfTrueCurrent != null)
+                    if(PayloadIfTrue != null)
                     {
-                        var payloadResult = PayloadIfTrueCurrent.Run(parameter);
-                        if(payloadResult.Status == PayloadResultStatus.Succeeded)
-                        {
-                            PayloadIfTrueCurrent = null;
-                            return new PayloadResultContinuationPending(payloadResult.Result);
-                        }
-                        else
-                        {
-                            return payloadResult;
-                        }
+                        return PayloadIfTrue.Run(parameter);
                     }
                     else
                     {
@@ -67,18 +51,9 @@ namespace compressor.Common.Payload.Basic
                 }
                 else
                 {
-                    if(PayloadIfFalseCurrent != null)
+                    if(PayloadIfFalse != null)
                     {
-                        var payloadResult = PayloadIfFalseCurrent.Run(parameter);
-                        if(payloadResult.Status == PayloadResultStatus.Succeeded)
-                        {
-                            PayloadIfFalseCurrent = null;
-                            return new PayloadResultContinuationPending(payloadResult.Result);
-                        }
-                        else
-                        {
-                            return payloadResult;
-                        }
+                        return PayloadIfFalse.Run(parameter);
                     }
                     else
                     {

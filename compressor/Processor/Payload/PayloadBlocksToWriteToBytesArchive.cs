@@ -10,7 +10,7 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadBlocksToWriteToBytesArchive : PayloadBlocksToWriteToBytesViaDelegate
+    class PayloadBlocksToWriteToBytesArchive : PayloadBlocksToWriteToBytes
     {
         public PayloadBlocksToWriteToBytesArchive(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
             : base(cancellationTokenSource, settings, BlocksToBytes)

@@ -8,7 +8,7 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadBytesToBlockToProcessBinary : PayloadBytesToBlockToProcessViaDelegate
+    class PayloadBytesToBlockToProcessBinary : PayloadBytesToBlockToProcess
     {
         public PayloadBytesToBlockToProcessBinary(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
             : base(cancellationTokenSource, settings, BytesToBlock)

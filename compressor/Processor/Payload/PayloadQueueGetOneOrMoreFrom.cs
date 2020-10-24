@@ -30,7 +30,7 @@ namespace compressor.Processor.Payload
                 bool taken = false;
                 try
                 {
-                    taken = Queue.TryTake(out blockFromQueue);
+                    taken = Queue.TryTake(out blockFromQueue, Timeout, CancellationTokenSource.Token);
                 }
                 catch(InvalidOperationException)
                 {

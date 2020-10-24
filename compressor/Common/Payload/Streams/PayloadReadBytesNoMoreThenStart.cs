@@ -6,7 +6,7 @@ namespace compressor.Common.Payload.Streams
 {
     class PayloadReadBytesNoMoreThenStart: PayloadReadBytesStart
     {
-        public PayloadReadBytesNoMoreThenStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public PayloadReadBytesNoMoreThenStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
             : base(cancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd)
         {
         }

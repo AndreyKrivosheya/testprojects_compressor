@@ -28,7 +28,7 @@ namespace compressor.Processor
         {
         }
 
-        protected readonly CancellationTokenSource CancellationTokenSource;
+        public readonly CancellationTokenSource CancellationTokenSource;
         protected readonly SettingsProvider Settings;
 
         readonly Lazy<Common.Payload.Basic.Factory> FactoryBasicLazy;
@@ -43,14 +43,23 @@ namespace compressor.Processor
         readonly Lazy<Factory> FactoryProcessorLazy;
         protected Factory FactoryProcessor { get { return FactoryProcessorLazy.Value; } }
         
+        // creates immediate compress/decompress processor paylod
         protected abstract Common.Payload.Payload CreateProcessPayload();
 
+        // creates payload tree implementing single run of compress/decompress processor payload
         public Common.Payload.Payload CreateProcessBody(QueueToProcess queueToProcess, QueueToWrite queueToWrite, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.Chain(
-                FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
-                CreateProcessPayload(),
-                FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
+            return FactoryBasic.WhenFinished(
+                FactoryBasic.Chain(
+                    FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
+                    CreateProcessPayload(),
+                    FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
+                ),
+                FactoryBasic.Conditional(
+                    (parameter) => object.ReferenceEquals(parameter, PayloadQueueCompleteAdding.LastObjectAdded),
+                    FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds),
+                    FactoryBasic.Succeed()
+                )
             );
         }
 
@@ -61,28 +70,6 @@ namespace compressor.Processor
             );
         }
 
-        protected Common.Payload.Payload ProcessSequence(Ref<bool> readerWriterWasEngagedIntoProcessing, QueueToProcess queueToProcess, QueueToWrite queueToWrite, IEnumerable<Thread> additionalProcessorsThreads)
-        {
-            return FactoryBasic.Sequence(
-                FactoryBasic.Conditional(
-                    () => readerWriterWasEngagedIntoProcessing.Value = readerWriterWasEngagedIntoProcessing.Value || queueToProcess.IsCompleted || (queueToProcess.IsHalfFull() || !additionalProcessorsThreads.Any(x => x != null && x.IsAlive)),
-                    CreateProcessBody(queueToProcess, queueToWrite, 0)
-                ),
-                FactoryBasic.Conditional(
-                    () => queueToProcess.IsCompleted && !additionalProcessorsThreads.Any(x => x != null && x.IsAlive),
-                    FactoryProcessor.CompleteProcessing(queueToWrite)
-                )
-            );
-        }
-
-        protected Common.Payload.Payload CompleteWritingConditional(Stream outputStream, QueueToWrite queueToWrite)
-        {
-            return FactoryBasic.Conditional(
-                () => queueToWrite.IsCompleted,
-                FactoryProcessor.CompleteWriting(outputStream)
-            );
-        }
-
-        public abstract Common.Payload.Payload CreateReadProcessWrite(Stream inputStream, Stream outputStream, QueueToProcess queueToProcess, QueueToWrite queueToWrite, IEnumerable<Thread> additionalProcessorsThreads);
+        public abstract Common.Payload.Payload CreateReadProcessWrite(Stream inputStream, Stream outputStream, QueueToProcess queueToProcess, QueueToWrite queueToWrite);
     }
 }

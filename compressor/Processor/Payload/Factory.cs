@@ -24,7 +24,7 @@ namespace compressor.Processor.Payload
 
         public Common.Payload.Payload QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
-            return new PayloadQueueAddTo<BlockToWrite>(CancellationTokenSource, Settings, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueAddToQueueToWrite(CancellationTokenSource, Settings, queue, queueOperationTimeoutMilliseconds);
         }
 
         public Common.Payload.Payload QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
@@ -45,6 +45,16 @@ namespace compressor.Processor.Payload
         public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneOrMoreFrom<BlockToWrite>(CancellationTokenSource, Settings, queue, queueOperationTimeoutMilliseconds);
+        }
+
+        public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueCompleteAdding<BlockToProcess>(CancellationTokenSource, Settings, queue, queueOperationTimeoutMilliseconds);
+        }
+
+        public Common.Payload.Payload QueueCompleteAddingQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, Settings, queue, queueOperationTimeoutMilliseconds);
         }
 
         public Common.Payload.Payload ProcessCompress()
@@ -75,11 +85,6 @@ namespace compressor.Processor.Payload
         public Common.Payload.Payload BlocksToWriteToBytesBinary()
         {
             return new PayloadBlocksToWriteToBytesBinary(CancellationTokenSource, Settings);
-        }
-
-        public Common.Payload.Payload CompleteProcessing(QueueToWrite queue)
-        {
-            return new PayloadCompleteProcessing(CancellationTokenSource, Settings, queue);
         }
 
         public Common.Payload.Payload CompleteWriting(Stream stream)

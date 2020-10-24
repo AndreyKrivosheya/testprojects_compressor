@@ -6,25 +6,21 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadSequence: Payload
     {
-        public PayloadSequence(CancellationTokenSource cancellationTokenSource, IEnumerable<Payload> payloads)
+        public PayloadSequence(CancellationTokenSource cancellationTokenSource, IEnumerable<Common.Payload.Payload> payloads)
             : base(cancellationTokenSource)
         {
             this.Payloads = new List<Payload>(payloads);
             this.PayloadsCurrent = new List<Payload>(payloads);
         }
-        public PayloadSequence(CancellationTokenSource cancellationTokenSource, params Payload[] payloads)
+        public PayloadSequence(CancellationTokenSource cancellationTokenSource, params Common.Payload.Payload[] payloads)
             : this(cancellationTokenSource, payloads.AsEnumerable())
         {
         }
 
         readonly List<Payload> Payloads;
+
         List<Payload> PayloadsCurrent;
         
-        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
-        {
-            return PayloadsCurrent;
-        }
-
         protected override PayloadResult RunUnsafe(object parameter)
         {
             var allSucceeded = true;

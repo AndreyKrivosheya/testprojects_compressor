@@ -6,11 +6,20 @@ namespace compressor.Common.Payload.Streams
 {
     class PayloadReadBytesStart: Payload
     {
-        public PayloadReadBytesStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public PayloadReadBytesStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
             : base(cancellationTokenSource, stream)
         {
             this.OnReadPastStreamEnd = onReadPastStreamEnd;
+            if(this.OnReadPastStreamEnd == null)
+            {
+                this.OnReadPastStreamEnd = () => {};
+            }
+
             this.ExceptionProducer = exceptionProducer;
+            if(this.ExceptionProducer == null)
+            {
+                this.ExceptionProducer = (e) => null; 
+            }
         }
 
         readonly Action OnReadPastStreamEnd;
@@ -35,7 +44,15 @@ namespace compressor.Common.Payload.Streams
             }
             catch(Exception e)
             {
-                throw ExceptionProducer(e);
+                var eNew = ExceptionProducer(e);
+                if(eNew != null)
+                {
+                    throw eNew;
+                }
+                else
+                {
+                    throw;
+                }
             }
         }
         protected sealed override PayloadResult RunUnsafe(object parameter)

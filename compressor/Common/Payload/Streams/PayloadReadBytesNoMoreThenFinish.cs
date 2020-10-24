@@ -10,7 +10,16 @@ namespace compressor.Common.Payload.Streams
             : base(cancellationTokenSource, stream)
         {
             this.OnReadPastStreamEnd = onReadPastStreamEnd;
+            if(this.OnReadPastStreamEnd == null)
+            {
+                this.OnReadPastStreamEnd = () => {};
+            }
+
             this.ExceptionProducer = exceptionProducer;
+            if(this.ExceptionProducer != null)
+            {
+                this.ExceptionProducer = (e) => null;
+            }
         }
 
         readonly Action OnReadPastStreamEnd;
@@ -37,7 +46,15 @@ namespace compressor.Common.Payload.Streams
                 }
                 catch(Exception e)
                 {
-                    throw ExceptionProducer(e);
+                    var eNew = ExceptionProducer(e);
+                    if(eNew != null)
+                    {
+                        throw eNew;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
             }
 
@@ -50,13 +67,13 @@ namespace compressor.Common.Payload.Streams
                 throw new ArgumentNullException("parameter");
             }
 
-            var writingAsyncResult = parameter as IAsyncResult;
-            if(writingAsyncResult == null)
+            var readingAsyncResult = parameter as IAsyncResult;
+            if(readingAsyncResult == null)
             {
                 throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not IAsyncResult", parameter), "parameter");
             }
 
-            return RunUnsafe(writingAsyncResult);
+            return RunUnsafe(readingAsyncResult);
         }
     }
 }

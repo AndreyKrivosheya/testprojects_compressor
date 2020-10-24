@@ -17,17 +17,17 @@ namespace compressor.Common.Payload.Streams
         readonly Lazy<Basic.Factory> FactoryBasicLazy;
         Basic.Factory FactoryBasic { get { return FactoryBasicLazy.Value; } }
 
-        public Common.Payload.Payload ReadBytesNoMoreThenStart(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesNoMoreThenStart(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return new PayloadReadBytesNoMoreThenStart(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesNoMoreThenFinish(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesNoMoreThenFinish(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return new PayloadReadBytesNoMoreThenFinish(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesNoMoreThen(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesNoMoreThen(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return FactoryBasic.Chain(
                 ReadBytesNoMoreThenStart(stream, exceptionProducer, onReadPastStreamEnd),
@@ -35,17 +35,17 @@ namespace compressor.Common.Payload.Streams
             );
         }
 
-        public Common.Payload.Payload ReadBytesExactlyStart(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesExactlyStart(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return new PayloadReadBytesExactlyStart(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
         
-        public Common.Payload.Payload ReadBytesExactlyFinish(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesExactlyFinish(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return new PayloadReadBytesExactlyFinish(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesExactly(Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
+        public Common.Payload.Payload ReadBytesExactly(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return FactoryBasic.Chain(
                 ReadBytesExactlyStart(stream, exceptionProducer, onReadPastStreamEnd),

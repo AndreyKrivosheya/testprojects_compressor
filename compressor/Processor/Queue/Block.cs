@@ -18,8 +18,16 @@ namespace compressor.Processor.Queue
 
             protected AwaiterForAddedToQueue Previous { get; private set; }
 
+            public bool Last { get; private set; } = false;
+
+            public void NotifyLast()
+            {
+                Last = true;
+            }
+
             readonly object BlockAddedToQueueLazyLock = new object();
             Lazy<ManualResetEvent> BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => new ManualResetEvent(false));
+            
             public void NotifyAddedToQueue()
             {
                 lock(BlockAddedToQueueLazyLock)
@@ -35,12 +43,13 @@ namespace compressor.Processor.Queue
                     BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
                 }
             }
-            public bool WaitAllPreviousBlocksAddedToQueue(int milliseconds, CancellationToken cancellationToken)
+
+            public bool WaitAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
             {
                 var previous = Previous;
                 if(null != previous)
                 {
-                    if(!previous.WaitThisAndAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken))
+                    if(!previous.WaitThisAndAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken))
                     {
                         return false;
                     }
@@ -60,10 +69,11 @@ namespace compressor.Processor.Queue
             {
                 return WaitAllPreviousBlocksAddedToQueue(0, cancellationToken);
             }
-            public bool WaitThisAndAllPreviousBlocksAddedToQueue(int milliseconds, CancellationToken cancellationToken)
+
+            public bool WaitThisAndAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
             {
                 // wait all previous blocks were added to queue
-                if(!WaitAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken))
+                if(!WaitAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken))
                 {
                     return false;
                 }
@@ -79,7 +89,7 @@ namespace compressor.Processor.Queue
                     bool waitingEndedDueToWaitableDisposed = false;
                     try
                     {
-                        if(0 == WaitHandle.WaitAny(new [] { waitableThisBlockAddedToQueue, cancellationToken.WaitHandle }, milliseconds))
+                        if(0 == WaitHandle.WaitAny(new [] { waitableThisBlockAddedToQueue, cancellationToken.WaitHandle }, millisecondsTimeout))
                         {
                             waitingEndedDueToAddedToQueue = true;
                         }

@@ -9,7 +9,7 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadProcessDecompress : PayloadProcessViaDelegate
+    class PayloadProcessDecompress : PayloadProcess
     {
         public PayloadProcessDecompress(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
             : base(cancellationTokenSource, settings, DecompressBlock)

@@ -9,12 +9,14 @@ namespace compressor.Processor.Payload
 {
     abstract class PayloadProcess : Payload
     {
-        public PayloadProcess(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
+        public PayloadProcess(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Func<BlockToProcess, BlockToWrite> processor)
             : base(cancellationTokenSource, settings)
         {
+            this.Processor = processor;
         }
 
-        protected abstract BlockToWrite ProcessBlock(BlockToProcess blockToProcess);
+        readonly Func<BlockToProcess, BlockToWrite> Processor;
+
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
             if(parameter == null)
@@ -28,7 +30,7 @@ namespace compressor.Processor.Payload
                 throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not BlockToProcess", parameter), "parameter");
             }
 
-            return new PayloadResultContinuationPending(ProcessBlock(blockToProcess));
+            return new PayloadResultContinuationPending(Processor(blockToProcess));
         }
     }
 }

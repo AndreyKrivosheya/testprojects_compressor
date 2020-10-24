@@ -7,47 +7,20 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadChain: Payload
     {
-        public PayloadChain(CancellationTokenSource cancellationTokenSource, bool shouldConvertSucceededToPending, IEnumerable<Payload> payloads)
+        public PayloadChain(CancellationTokenSource cancellationTokenSource, IEnumerable<Payload> payloads)
             : base(cancellationTokenSource)
         {
-            this.ShouldConvertSuceededToPending = shouldConvertSucceededToPending;
-            this.Payloads = payloads.ToArray();
+            this.Payloads = new List<Payload>(payloads);
         }
-        public PayloadChain(CancellationTokenSource cancellationTokenSource, bool shouldConvertSucceededToPending, params Payload[] payloads)
-            : this(cancellationTokenSource, shouldConvertSucceededToPending, payloads.AsEnumerable())
+        public PayloadChain(CancellationTokenSource cancellationTokenSource, params Payload[] payloads)
+            : this(cancellationTokenSource, payloads.AsEnumerable())
         {
         }
 
-        readonly bool ShouldConvertSuceededToPending;
         readonly IEnumerable<Payload> Payloads;
         
         IEnumerator<Payload> PayloadCurrent = null;
         object PayloadCurrentParameter = null;
-
-        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
-        {
-            return Payloads;
-        }
-        protected override IEnumerable<WaitHandle> GetCurrentWaitHandlesForThreadSleep()
-        {
-            var baseAwaitables = base.GetCurrentWaitHandlesForThreadSleep();
-            if(PayloadCurrentParameter != null)
-            {
-                var payloadCurrentParameterAsSyncResult = PayloadCurrentParameter as IAsyncResult;
-                if(payloadCurrentParameterAsSyncResult != null)
-                {
-                    return baseAwaitables.Concat(new [] { payloadCurrentParameterAsSyncResult.AsyncWaitHandle });
-                }
-
-                var payloadCurrentParameterAsWaitHandle = PayloadCurrentParameter as WaitHandle;
-                if(payloadCurrentParameterAsWaitHandle != null)
-                {
-                    return baseAwaitables.Concat(new [] { payloadCurrentParameterAsWaitHandle });
-                }
-            }
-
-            return baseAwaitables;
-        }
 
         protected override PayloadResult RunUnsafe(object parameter)
         {
@@ -81,14 +54,6 @@ namespace compressor.Common.Payload.Basic
                             return payloadCurrentResult;
                         }
                     case PayloadResultStatus.Succeeded:
-                        if(ShouldConvertSuceededToPending)
-                        {
-                            return new PayloadResultContinuationPending(payloadCurrentResult.Result);
-                        }
-                        else
-                        {
-                            return payloadCurrentResult;
-                        }
                     case PayloadResultStatus.Canceled:
                     case PayloadResultStatus.Failed:
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
