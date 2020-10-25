@@ -20,6 +20,11 @@ namespace compressor.Common.Payload.Basic
         readonly List<Payload> Payloads;
         List<Payload> PayloadsCurrent;
         
+        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
+        {
+            return PayloadsCurrent;
+        }
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
             var allSucceeded = true;

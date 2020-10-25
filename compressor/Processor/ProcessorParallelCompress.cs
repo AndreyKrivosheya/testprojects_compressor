@@ -11,7 +11,7 @@ namespace compressor.Processor
     class ProcessorParallelCompress: ProcessorParallel
     {
         public ProcessorParallelCompress(SettingsProvider settings, Stream inputStream, Stream outputStream)
-            : base(settings, inputStream, outputStream, new Payload.FactoryCompress())
+            : base(settings, inputStream, outputStream, new PayloadFactoryCompress(settings))
         {
         }
     }

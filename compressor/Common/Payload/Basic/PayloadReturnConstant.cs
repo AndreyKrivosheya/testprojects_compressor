@@ -14,7 +14,7 @@ namespace compressor.Common.Payload.Basic
         
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            return new PayloadResultSucceeded(Constant);
+            return new PayloadResultContinuationPending(Constant);
         }
     }
 }

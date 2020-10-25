@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "compressor/bin": true,
+        "compressor/obj": true
+    }
+}

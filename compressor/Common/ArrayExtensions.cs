@@ -6,10 +6,17 @@ namespace compressor.Common
     {
         public static T[] SubArray<T>(this T[] source, int start, int length)
         {
-            var destination = new T[length];
-            Array.Copy(source, start, destination, 0, length);
+            if(start == 0 && length == source.Length)
+            {
+                return source;
+            }
+            else
+            {
+                var destination = new T[length];
+                Array.Copy(source, start, destination, 0, length);
 
-            return destination;
+                return destination;
+            }
         }
         public static T[] SubArray<T>(this T[] source, int start)
         {

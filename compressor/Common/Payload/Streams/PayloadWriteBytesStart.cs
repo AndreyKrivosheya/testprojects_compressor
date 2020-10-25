@@ -2,11 +2,13 @@ using System;
 using System.IO;
 using System.Threading;
 
+using compressor.Processor.Settings;
+
 namespace compressor.Common.Payload.Streams
 {
-    class PayloadWriteBytesFinish: Payload
+    class PayloadWriteBytesStart: Payload
     {
-        public PayloadWriteBytesFinish(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer)
+        public PayloadWriteBytesStart(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer)
             : base(cancellationTokenSource, stream)
         {
             this.ExceptionProducer = exceptionProducer;
@@ -14,18 +16,18 @@ namespace compressor.Common.Payload.Streams
 
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        PayloadResult RunUnsafe(IAsyncResult writingAsyncResult)
+        PayloadResult RunUnsafe(byte[] bytes)
         {
-            if(writingAsyncResult.IsCompleted)
+            if(bytes.Length > 0)
             {
                 try
                 {
-                    Stream.EndWrite(writingAsyncResult);
-                    return new PayloadResultContinuationPending();
+                    var writingAsyncResult = Stream.BeginWrite(bytes, 0, bytes.Length, null, null);
+                    return new PayloadResultContinuationPending(writingAsyncResult);
                 }
                 catch(Exception e)
                 {
-                    throw new ApplicationException("Failed to write block", e);
+                    throw ExceptionProducer(e);
                 }
             }
 
@@ -38,13 +40,13 @@ namespace compressor.Common.Payload.Streams
                 throw new ArgumentNullException("parameter");
             }
 
-            var writingAsyncResult = parameter as IAsyncResult;
-            if(writingAsyncResult == null)
+            var bytes = parameter as byte[];
+            if(bytes == null)
             {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not IAsyncResult", parameter), "parameter");
+                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not byte[]", parameter), "parameter");
             }
 
-            return RunUnsafe(writingAsyncResult);
+            return RunUnsafe(bytes);
         }
     }
 }

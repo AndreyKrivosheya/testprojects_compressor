@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -31,6 +32,11 @@ namespace compressor.Common.Payload.Basic
         readonly Payload PayloadIfFalse;
         Payload PayloadIfFalseCurrent;
         
+        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
+        {
+            return new[] { PayloadIfTrue, PayloadIfFalse };
+        }
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
             if(PayloadIfTrueCurrent == null && PayloadIfFalseCurrent == null)

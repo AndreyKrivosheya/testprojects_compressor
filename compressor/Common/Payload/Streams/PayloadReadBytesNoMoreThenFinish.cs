@@ -4,28 +4,40 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Streams
 {
-    class PayloadWriteBytesFinish: Payload
+    class PayloadReadBytesNoMoreThenFinish: Payload
     {
-        public PayloadWriteBytesFinish(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer)
+        public PayloadReadBytesNoMoreThenFinish(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer, Action onReadPastStreamEnd)
             : base(cancellationTokenSource, stream)
         {
+            this.OnReadPastStreamEnd = onReadPastStreamEnd;
             this.ExceptionProducer = exceptionProducer;
         }
 
+        readonly Action OnReadPastStreamEnd;
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        PayloadResult RunUnsafe(IAsyncResult writingAsyncResult)
+        PayloadResult RunUnsafe(IAsyncResult readingAsyncResult)
         {
-            if(writingAsyncResult.IsCompleted)
+            if(readingAsyncResult.IsCompleted)
             {
                 try
                 {
-                    Stream.EndWrite(writingAsyncResult);
-                    return new PayloadResultContinuationPending();
+                    var totalRead = Stream.EndRead(readingAsyncResult);
+                    if(totalRead != 0)
+                    {
+                        var data = (byte[])readingAsyncResult.AsyncState;
+                        return new PayloadResultContinuationPending(data.SubArray(0, totalRead));
+                    }
+                    else
+                    {
+                        // finsihed reading, no more to process
+                        OnReadPastStreamEnd();
+                        return new PayloadResultSucceeded();
+                    }
                 }
                 catch(Exception e)
                 {
-                    throw new ApplicationException("Failed to write block", e);
+                    throw ExceptionProducer(e);
                 }
             }
 

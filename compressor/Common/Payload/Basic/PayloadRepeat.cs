@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -12,6 +14,11 @@ namespace compressor.Common.Payload.Basic
 
         readonly Payload Payload;
         
+        protected override IEnumerable<Common.Payload.Payload> GetCurrentSubpayloadsForThreadsSleep()
+        {
+            return new[] { Payload };
+        }
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
             while(!CancellationTokenSource.IsCancellationRequested)
@@ -27,8 +34,7 @@ namespace compressor.Common.Payload.Basic
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
                         // spent the cycle checking if anything is ready to work on
                         // ... be gentle with the CPU, don't waste all onto checking if there's nothing to do
-                        //WaitHandle.WaitAny(new [] { CancellationTokenSource.Token.WaitHandle }, 1000);
-                        Thread.Yield();
+                        WaitHandle.WaitAny((new [] { CancellationTokenSource.Token.WaitHandle }).Concat(GetAllWaitHandlesForThreadsSleep()).ToArray(), 500 );
                         break;
                     case PayloadResultStatus.Succeeded:
                     case PayloadResultStatus.Canceled:

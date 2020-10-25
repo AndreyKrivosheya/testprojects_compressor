@@ -13,47 +13,56 @@ namespace compressor.Common.Payload.Basic
 
         readonly CancellationTokenSource CancellationTokenSource;
 
-        public Payload CreateReturnConstant(object constant)
+        public Common.Payload.Payload ReturnConstant(object constant)
         {
             return new PayloadReturnConstant(CancellationTokenSource, constant);
         }
 
-        public Payload CreateConditional(Func<object, bool> condition, Payload payloadIfTrue, Payload payloadIfFalse)
+        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue, Common.Payload.Payload payloadIfFalse)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
         }
-        public Payload CreateConditional(Func<object, bool> condition, Payload payloadIfTrue)
+        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue);
         }
-        public Payload CreateConditional(Func<bool> condition, Payload payloadIfTrue, Payload payloadIfFalse)
+        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue, Common.Payload.Payload payloadIfFalse)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
         }
-        public Payload CreateConditional(Func<bool> condition, Payload payloadIfTrue)
+        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue);
         }
 
-        public Payload CreateSequence(IEnumerable<Payload> payloads)
+        public Common.Payload.Payload Sequence(IEnumerable<Common.Payload.Payload> payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
         }
-        public Payload CreateSequence(params Payload[] payloads)
+        public Common.Payload.Payload Sequence(params Common.Payload.Payload[] payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
         }
 
-        public Payload CreateChain(IEnumerable<Payload> payloads)
+        public Common.Payload.Payload Chain(IEnumerable<Common.Payload.Payload> payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
         }
-        public Payload CreateChain(params Payload[] payloads)
+        public Common.Payload.Payload Chain(params Common.Payload.Payload[] payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
         }
 
-        public Payload CreateRepeat(Payload payload)
+        public Common.Payload.Payload ChainConvertingSuceededToPending(IEnumerable<Common.Payload.Payload> payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
+        }
+        public Common.Payload.Payload ChainConvertingSuceededToPending(params Common.Payload.Payload[] payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
+        }
+
+        public Common.Payload.Payload Repeat(Payload payload)
         {
             return new PayloadRepeat(CancellationTokenSource, payload);
         }
