@@ -8,10 +8,10 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    abstract class PayloadBytesToBlockToProcess : Payload
+    abstract class PayloadBytesToBlockToProcess : Common.Payload.Payload
     {
-        public PayloadBytesToBlockToProcess(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Func<BlockToProcess, byte[], BlockToProcess> converter)
-            : base(cancellationTokenSource, settings)
+        public PayloadBytesToBlockToProcess(CancellationTokenSource cancellationTokenSource, Func<BlockToProcess, byte[], BlockToProcess> converter)
+            : base(cancellationTokenSource)
         {
             this.Converter = converter;
         }
@@ -22,8 +22,7 @@ namespace compressor.Processor.Payload
 
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            (byte[] data) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((byte[] data) =>
             {
                 Last = Converter(Last, data);
                 return new PayloadResultContinuationPending(Last);

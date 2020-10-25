@@ -9,13 +9,25 @@ namespace compressor.Common.Payload.Streams
         public Factory(CancellationTokenSource cancellationTokenSource)
         {
             this.CancellationTokenSource = cancellationTokenSource;
-            this.FactoryBasicLazy = new Lazy<Basic.Factory>(() => new Basic.Factory(CancellationTokenSource));
+            this.FactoryBasic = new Basic.Factory(CancellationTokenSource);
         }
 
         readonly CancellationTokenSource CancellationTokenSource;
 
-        readonly Lazy<Basic.Factory> FactoryBasicLazy;
-        Basic.Factory FactoryBasic { get { return FactoryBasicLazy.Value; } }
+        readonly Basic.Factory FactoryBasic;
+
+        public Common.Payload.Payload Flush(Stream stream)
+        {
+            return new PayloadFlush(CancellationTokenSource, stream);
+        }
+
+        public Common.Payload.Payload FlushAndSucceed(Stream stream)
+        {
+            return FactoryBasic.Chain(
+                Flush(stream),
+                FactoryBasic.Succeed()
+            );
+        }
 
         public Common.Payload.Payload ReadBytesNoMoreThenStart(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {

@@ -12,8 +12,8 @@ namespace compressor.Processor.Payload
 {
     class PayloadProcessCompress : PayloadProcess
     {
-        public PayloadProcessCompress(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
-            : base(cancellationTokenSource, settings, CompressBlock)
+        public PayloadProcessCompress(CancellationTokenSource cancellationTokenSource)
+            : base(cancellationTokenSource, CompressBlock)
         {
         }
 

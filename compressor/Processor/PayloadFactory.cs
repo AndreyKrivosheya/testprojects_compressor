@@ -18,58 +18,29 @@ namespace compressor.Processor
         {
             this.CancellationTokenSource = cancellationTokenSource;
             this.Settings = settings;
-            this.FactoryBasicLazy = new Lazy<Common.Payload.Basic.Factory>(() => new Common.Payload.Basic.Factory(CancellationTokenSource));
-            this.FactoryCommonStreamsLazy = new Lazy<Common.Payload.Streams.Factory>(() => new Common.Payload.Streams.Factory(CancellationTokenSource));
-            this.FactoryCommonConvertLazy = new Lazy<Common.Payload.Convert.Factory>(() => new Common.Payload.Convert.Factory(CancellationTokenSource));
-            this.FactoryProcessorLazy = new Lazy<Factory>(() => new Factory(CancellationTokenSource, Settings));
+            
+            this.FactoryBasic = new Common.Payload.Basic.Factory(CancellationTokenSource);
+            this.FactoryCommonStreams = new Common.Payload.Streams.Factory(CancellationTokenSource);
+            this.FactoryCommonConvert = new Common.Payload.Convert.Factory(CancellationTokenSource);
+            this.FactoryProcessor = new Factory(CancellationTokenSource);
         }
         public PayloadFactory(SettingsProvider settings)
             : this(new CancellationTokenSource(), settings)
         {
         }
 
-        public readonly CancellationTokenSource CancellationTokenSource;
+        protected readonly CancellationTokenSource CancellationTokenSource;
         protected readonly SettingsProvider Settings;
 
-        readonly Lazy<Common.Payload.Basic.Factory> FactoryBasicLazy;
-        protected Common.Payload.Basic.Factory FactoryBasic { get { return FactoryBasicLazy.Value; } }
-
-        readonly Lazy<Common.Payload.Streams.Factory> FactoryCommonStreamsLazy;
-        protected Common.Payload.Streams.Factory FactoryCommonStreams { get { return FactoryCommonStreamsLazy.Value; } }
-
-        readonly Lazy<Common.Payload.Convert.Factory> FactoryCommonConvertLazy;
-        protected Common.Payload.Convert.Factory FactoryCommonConvert { get { return FactoryCommonConvertLazy.Value; } }
-
-        readonly Lazy<Factory> FactoryProcessorLazy;
-        protected Factory FactoryProcessor { get { return FactoryProcessorLazy.Value; } }
+        protected readonly Common.Payload.Basic.Factory FactoryBasic;
+        protected readonly Common.Payload.Streams.Factory FactoryCommonStreams;
+        protected readonly Common.Payload.Convert.Factory FactoryCommonConvert;
+        protected readonly Factory FactoryProcessor;
         
-        // creates immediate compress/decompress processor paylod
-        protected abstract Common.Payload.Payload CreateProcessPayload();
+        // creates payload tree implementing run of compress/decompress processor payload
+        public abstract Common.Payload.Payload CreateProcess(QueueToProcess queueToProcess, QueueToWrite queueToWrite);
 
-        // creates payload tree implementing single run of compress/decompress processor payload
-        public Common.Payload.Payload CreateProcessBody(QueueToProcess queueToProcess, QueueToWrite queueToWrite, int queueOperationTimeoutMilliseconds)
-        {
-            return FactoryBasic.WhenFinished(
-                FactoryBasic.Chain(
-                    FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
-                    CreateProcessPayload(),
-                    FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
-                ),
-                FactoryBasic.Conditional(
-                    (parameter) => object.ReferenceEquals(parameter, PayloadQueueCompleteAdding.LastObjectAdded),
-                    FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds),
-                    FactoryBasic.Succeed()
-                )
-            );
-        }
-
-        public Common.Payload.Payload CreateProcess(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
-        {
-            return FactoryBasic.Repeat(
-                CreateProcessBody(queueToProcess, queueToWrite, Timeout.Infinite)
-            );
-        }
-
+        // creates payload tree implementing run of compress/decompress processor payload
         public abstract Common.Payload.Payload CreateReadProcessWrite(Stream inputStream, Stream outputStream, QueueToProcess queueToProcess, QueueToWrite queueToWrite);
     }
 }

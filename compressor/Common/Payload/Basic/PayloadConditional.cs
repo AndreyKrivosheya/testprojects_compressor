@@ -6,23 +6,15 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadConditional: Payload
     {
-        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue, Payload payloadIfFalse)
+        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue = null, Payload payloadIfFalse = null)
             : base(cancellationTokenSource)
         {
             this.Condition = condition;
             this.PayloadIfTrue = payloadIfTrue;
             this.PayloadIfFalse = payloadIfFalse;
         }
-        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue)
-            : this(cancellationTokenSource, condition, payloadIfTrue, null)
-        {
-        }
-        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<bool> condition, Payload payloadIfTrue, Payload payloadIfFalse)
-            : this(cancellationTokenSource, (obj) => condition(), payloadIfTrue, payloadIfFalse)
-        {
-        }
-        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<bool> condition, Payload payloadIfTrue)
-            : this(cancellationTokenSource, condition, payloadIfTrue, null)
+        public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<bool> condition, Payload payloadIfTrue = null, Payload payloadIfFalse = null)
+            : this(cancellationTokenSource, (parameter) => condition(), payloadIfTrue, payloadIfFalse)
         {
         }
 

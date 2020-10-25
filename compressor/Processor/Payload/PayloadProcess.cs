@@ -7,10 +7,10 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    abstract class PayloadProcess : Payload
+    abstract class PayloadProcess : Common.Payload.Payload
     {
-        public PayloadProcess(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Func<BlockToProcess, BlockToWrite> processor)
-            : base(cancellationTokenSource, settings)
+        public PayloadProcess(CancellationTokenSource cancellationTokenSource, Func<BlockToProcess, BlockToWrite> processor)
+            : base(cancellationTokenSource)
         {
             this.Processor = processor;
         }
@@ -19,8 +19,7 @@ namespace compressor.Processor.Payload
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            (BlockToProcess blockToProcess) => new PayloadResultContinuationPending(Processor(blockToProcess)));
+            return parameter.VerifyNotNullConvertAndRunUnsafe((BlockToProcess blockToProcess) => new PayloadResultContinuationPending(Processor(blockToProcess)));
         }
     }
 }

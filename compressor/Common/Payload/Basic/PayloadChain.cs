@@ -51,13 +51,19 @@ namespace compressor.Common.Payload.Basic
                             // reset payloads and argument
                             PayloadCurrent = null;
                             PayloadCurrentParameter = null;
+                            // ...
                             return payloadCurrentResult;
                         }
+                    case PayloadResultStatus.ContinuationPendingDoneNothing:
+                        return payloadCurrentResult;
                     case PayloadResultStatus.Succeeded:
                     case PayloadResultStatus.Canceled:
                     case PayloadResultStatus.Failed:
-                    case PayloadResultStatus.ContinuationPendingDoneNothing:
                     default:
+                        // reset payloads and argument
+                        PayloadCurrent = null;
+                        PayloadCurrentParameter = null;
+                        // ...
                         return payloadCurrentResult;
                 }
             }

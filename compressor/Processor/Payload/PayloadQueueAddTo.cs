@@ -7,11 +7,11 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadQueueAddTo<TBlock>: PayloadQueue<TBlock>
+    abstract class PayloadQueueAddTo<TBlock>: PayloadQueue<TBlock>
         where TBlock: Block
     {
-        public PayloadQueueAddTo(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, settings, queue, queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddTo(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, queue, queueOperationTimeoutMilliseconds)
         {
         }
 
@@ -53,8 +53,7 @@ namespace compressor.Processor.Payload
         }
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            ((Func<TBlock, PayloadResult>)RunUnsafe));
+            return parameter.VerifyNotNullConvertAndRunUnsafe<TBlock>(RunUnsafe);
         }
     }
 }

@@ -23,21 +23,13 @@ namespace compressor.Common.Payload.Basic
             return new PayloadReturnConstant(CancellationTokenSource, constant);
         }
 
-        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue, Common.Payload.Payload payloadIfFalse)
+        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
         }
-        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)
-        {
-            return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue);
-        }
-        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue, Common.Payload.Payload payloadIfFalse)
+        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
-        }
-        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
-        {
-            return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue);
         }
 
         public Common.Payload.Payload ConditionalOnceAndForever(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)

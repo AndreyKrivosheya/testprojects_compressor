@@ -9,8 +9,8 @@ namespace compressor.Processor.Payload
 {
     class PayloadQueueAddToQueueToWrite: PayloadQueueAddTo<BlockToWrite>
     {
-        public PayloadQueueAddToQueueToWrite(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, QueueToWrite queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, settings, queue, queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToQueueToWrite(CancellationTokenSource cancellationTokenSource, QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, queue, queueOperationTimeoutMilliseconds)
         {
         }
 

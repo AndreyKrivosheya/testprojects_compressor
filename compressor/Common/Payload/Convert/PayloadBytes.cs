@@ -14,8 +14,7 @@ namespace compressor.Common.Payload.Convert
         protected abstract PayloadResult RunUnsafe(byte[] data);
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            ((Func<byte[], PayloadResult>)RunUnsafe));
+            return parameter.VerifyNotNullConvertAndRunUnsafe<byte[]>(RunUnsafe);
         }
    }
 }

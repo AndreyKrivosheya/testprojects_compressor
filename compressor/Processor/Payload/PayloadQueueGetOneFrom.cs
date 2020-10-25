@@ -7,18 +7,13 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadQueueGetOneFrom<TBlock>: Payload
+    class PayloadQueueGetOneFrom<TBlock>: PayloadQueue<TBlock>
         where TBlock: Block
     {
-        public PayloadQueueGetOneFrom(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, settings)
+        public PayloadQueueGetOneFrom(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, queue, queueOperationTimeoutMilliseconds)
         {
-            this.Queue = queue;
-            this.Timeout = queueOperationTimeoutMilliseconds;
         }
-
-        readonly Queue.Queue<TBlock> Queue;
-        readonly int Timeout;
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {

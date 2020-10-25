@@ -10,8 +10,8 @@ namespace compressor.Processor.Payload
 {
     class PayloadBytesToBlockToProcessArchive : PayloadBytesToBlockToProcess
     {
-        public PayloadBytesToBlockToProcessArchive(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
-            : base(cancellationTokenSource, settings, BytesToBlock)
+        public PayloadBytesToBlockToProcessArchive(CancellationTokenSource cancellationTokenSource)
+            : base(cancellationTokenSource, BytesToBlock)
         {
         }
 

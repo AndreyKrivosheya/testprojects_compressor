@@ -9,20 +9,20 @@ namespace compressor.Processor.Queue
     {
         public Queue(int maxCapacity)
         {
-            this.QueueMaxCapacity = maxCapacity;
-            this.QueueImplementation = new BlockingCollection<TBlock>(new ConcurrentQueue<TBlock>(), maxCapacity);
+            this.MaxCapacity = maxCapacity;
+            this.Implementation = new BlockingCollection<TBlock>(new ConcurrentQueue<TBlock>(), maxCapacity);
         }
 
-        readonly BlockingCollection<TBlock> QueueImplementation;
-        readonly int QueueMaxCapacity;
+        readonly BlockingCollection<TBlock> Implementation;
+        public readonly int MaxCapacity;
 
         public virtual bool TryAdd(TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return QueueImplementation.TryAdd(item, millisecondsTimeout, cancellationToken);
+            return Implementation.TryAdd(item, millisecondsTimeout, cancellationToken);
         }
         public virtual bool TryAdd(TBlock item, int millisecondsTimeout)
         {
-            return QueueImplementation.TryAdd(item, millisecondsTimeout);
+            return Implementation.TryAdd(item, millisecondsTimeout);
         }
         public bool TryAdd(TBlock item, CancellationToken cancellationToken)
         {
@@ -37,7 +37,7 @@ namespace compressor.Processor.Queue
         {
             get
             {
-                return QueueImplementation.IsCompleted;
+                return Implementation.IsCompleted;
             }
         }
         
@@ -45,17 +45,17 @@ namespace compressor.Processor.Queue
         {
             get
             {
-                return QueueImplementation.IsAddingCompleted;
+                return Implementation.IsAddingCompleted;
             }
         }
         public virtual bool CompleteAdding(int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            QueueImplementation.CompleteAdding();
+            Implementation.CompleteAdding();
             return true;
         }
         public virtual bool CompleteAdding(int millisecondsTimeout)
         {
-            QueueImplementation.CompleteAdding();
+            Implementation.CompleteAdding();
             return true;
         }
         public bool CompleteAdding(CancellationToken cancellationToken)
@@ -69,11 +69,11 @@ namespace compressor.Processor.Queue
 
         public bool TryTake(out TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return QueueImplementation.TryTake(out item, millisecondsTimeout, cancellationToken);
+            return Implementation.TryTake(out item, millisecondsTimeout, cancellationToken);
         }
         public bool TryTake(out TBlock item, int millisecondsTimeout)
         {
-            return QueueImplementation.TryTake(out item, millisecondsTimeout);
+            return Implementation.TryTake(out item, millisecondsTimeout);
         }
         public bool TryTake(out TBlock item, CancellationToken cancellationToken)
         {
@@ -89,7 +89,7 @@ namespace compressor.Processor.Queue
             if(percents < 0 || percents > 100)
                 throw new ArgumentException("percents");
 
-            return QueueImplementation.Count >= ((percents * this.QueueMaxCapacity) / 100f);
+            return Implementation.Count >= ((percents * MaxCapacity) / 100f);
         }
         public bool IsHalfFull()
         {

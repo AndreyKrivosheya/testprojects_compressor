@@ -15,8 +15,8 @@ namespace compressor.Processor.Payload
     class PayloadQueueCompleteAdding<TBlock>: PayloadQueue<TBlock>
         where TBlock: Block
     {
-        public PayloadQueueCompleteAdding(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, settings, queue, queueOperationTimeoutMilliseconds)
+        public PayloadQueueCompleteAdding(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, queue, queueOperationTimeoutMilliseconds)
         {
         }
 

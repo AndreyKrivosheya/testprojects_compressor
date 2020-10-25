@@ -7,11 +7,11 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    abstract class PayloadQueue<TBlock>: Payload
+    abstract class PayloadQueue<TBlock>: Common.Payload.Payload
         where TBlock: Block
     {
-        public PayloadQueue(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, settings)
+        public PayloadQueue(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource)
         {
             this.Queue = queue;
             this.Timeout = queueOperationTimeoutMilliseconds;

@@ -8,22 +8,32 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadQueueGetOneOrMoreFrom<TBlock>: Payload
+    class PayloadQueueGetOneOrMoreFrom<TBlock>: PayloadQueue<TBlock>
         where TBlock: Block
     {
-        public PayloadQueueGetOneOrMoreFrom(CancellationTokenSource cancellationTokenSource, SettingsProvider settings, Queue.Queue<TBlock> queue, int queueOperationTimeoutMillisecondsTimeout)
-            : base(cancellationTokenSource, settings)
+        public PayloadQueueGetOneOrMoreFrom(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMillisecondsTimeout, int maxBlocksToGet)
+            : base(cancellationTokenSource, queue, queueOperationTimeoutMillisecondsTimeout)
         {
-            this.Queue = queue;
-            this.Timeout = queueOperationTimeoutMillisecondsTimeout;
+            // get as much blocks as possible
+            if(maxBlocksToGet < 1)
+            {
+                this.MaxBlocksToGet = -1;
+            }
+            else
+            {
+                this.MaxBlocksToGet = maxBlocksToGet;
+            }
+        }
+        public PayloadQueueGetOneOrMoreFrom(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMillisecondsTimeout)
+            : this(cancellationTokenSource, queue, queueOperationTimeoutMillisecondsTimeout, -1)
+        {
         }
 
-        readonly Queue.Queue<TBlock> Queue;
-        readonly int Timeout;
+        readonly int MaxBlocksToGet;
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            var blocksFromQueue = new List<TBlock>(Settings.MaxBlocksToWriteAtOnce);
+            var blocksFromQueue = new List<TBlock>(MaxBlocksToGet == -1 ? Queue.MaxCapacity : MaxBlocksToGet);
             while(blocksFromQueue.Count < blocksFromQueue.Capacity)
             {
                 TBlock blockFromQueue;

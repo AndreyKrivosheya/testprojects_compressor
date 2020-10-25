@@ -7,7 +7,7 @@ namespace compressor.Common.Payload.Basic
     class PayloadConditionalOnceAndForever: PayloadConditional
     {
         public PayloadConditionalOnceAndForever(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue)
-            : base(cancellationTokenSource, (new ConditionResultPersister(condition)).Evaluate, payloadIfTrue)
+            : base(cancellationTokenSource, (new ConditionWithResultsPersisted(condition)).Evaluate, payloadIfTrue)
         {
         }
         public PayloadConditionalOnceAndForever(CancellationTokenSource cancellationTokenSource, Func<bool> condition, Payload payloadIfTrue)
@@ -15,9 +15,9 @@ namespace compressor.Common.Payload.Basic
         {
         }
 
-        class ConditionResultPersister
+        class ConditionWithResultsPersisted
         {
-            public ConditionResultPersister(Func<object, bool> condition)
+            public ConditionWithResultsPersisted(Func<object, bool> condition)
             {
                 this.Condition = condition;
             }
@@ -36,7 +36,8 @@ namespace compressor.Common.Payload.Basic
                 {
                     if(Condition(parameter))
                     {
-                        return AlreadyEvaluatedToTrue = true;
+                        AlreadyEvaluatedToTrue = true;
+                        return true;
                     }
                     else
                     {

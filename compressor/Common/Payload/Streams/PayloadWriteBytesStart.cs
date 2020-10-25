@@ -22,8 +22,7 @@ namespace compressor.Common.Payload.Streams
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            (byte[] bytes) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((byte[] bytes) =>
             {
                 if(bytes.Length > 0)
                 {

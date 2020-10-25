@@ -20,8 +20,7 @@ namespace compressor.Common.Payload.Streams
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
-            (IAsyncResult writingAsyncResult) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult writingAsyncResult) =>
             {
                 if(writingAsyncResult.IsCompleted)
                 {

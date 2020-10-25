@@ -12,8 +12,8 @@ namespace compressor.Processor.Payload
 {
     class PayloadBlocksToWriteToBytesArchive : PayloadBlocksToWriteToBytes
     {
-        public PayloadBlocksToWriteToBytesArchive(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
-            : base(cancellationTokenSource, settings, BlocksToBytes)
+        public PayloadBlocksToWriteToBytesArchive(CancellationTokenSource cancellationTokenSource)
+            : base(cancellationTokenSource, BlocksToBytes)
         {
         }
 
