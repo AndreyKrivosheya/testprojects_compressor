@@ -18,45 +18,34 @@ namespace compressor.Common.Payload.Streams
 
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        PayloadResult RunUnsafe(IAsyncResult writingAsyncResult)
-        {
-            if(writingAsyncResult.IsCompleted)
-            {
-                try
-                {
-                    Stream.EndWrite(writingAsyncResult);
-                    return new PayloadResultContinuationPending();
-                }
-                catch(Exception e)
-                {
-                    var eNew = ExceptionProducer(e);
-                    if(eNew != null)
-                    {
-                        throw eNew;
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-
-            return new PayloadResultContinuationPendingDoneNothing();
-        }
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            (IAsyncResult writingAsyncResult) =>
             {
-                throw new ArgumentNullException("parameter");
-            }
+                if(writingAsyncResult.IsCompleted)
+                {
+                    try
+                    {
+                        Stream.EndWrite(writingAsyncResult);
+                        return new PayloadResultContinuationPending();
+                    }
+                    catch(Exception e)
+                    {
+                        var eNew = ExceptionProducer(e);
+                        if(eNew != null)
+                        {
+                            throw eNew;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
 
-            var writingAsyncResult = parameter as IAsyncResult;
-            if(writingAsyncResult == null)
-            {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not IAsyncResult", parameter), "parameter");
-            }
-
-            return RunUnsafe(writingAsyncResult);
+                return new PayloadResultContinuationPendingDoneNothing();
+            });
         }
     }
 }

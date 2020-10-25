@@ -53,18 +53,8 @@ namespace compressor.Processor.Payload
         }
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
-            {
-                throw new ArgumentNullException("parameter");
-            }
-
-            var blockToAdd = parameter as TBlock;
-            if(blockToAdd == null)
-            {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not TBLock ('{1}')", parameter, typeof(TBlock).AssemblyQualifiedName), "parameter");
-            }
-
-            return RunUnsafe(blockToAdd);
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            ((Func<TBlock, PayloadResult>)RunUnsafe));
         }
     }
 }

@@ -22,19 +22,12 @@ namespace compressor.Processor.Payload
 
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            (byte[] data) =>
             {
-                throw new ArgumentNullException("parameter");
-            }
-
-            var data = parameter as byte[];
-            if(data == null)
-            {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not byte[]", parameter), "parameter");
-            }
-
-            Last = Converter(Last, data);
-            return new PayloadResultContinuationPending(Last);
+                Last = Converter(Last, data);
+                return new PayloadResultContinuationPending(Last);
+            });
         }
     }
 }

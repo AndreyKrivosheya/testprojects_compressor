@@ -25,63 +25,44 @@ namespace compressor.Common.Payload.Streams
         readonly Action OnReadPastStreamEnd;
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        PayloadResult RunUnsafe(int length)
-        {
-            var data = new byte[length];
-            try
-            {
-                try
-                {
-                    var readingAsyncResult = Stream.BeginRead(data, 0, data.Length, null, data);
-                    return new PayloadResultContinuationPending(readingAsyncResult);
-                }
-                catch(IOException)
-                {
-                    // reading past stream end, means we have read all the stream
-                    OnReadPastStreamEnd();
-                    return new PayloadResultSucceeded();
-                }
-            }
-            catch(Exception e)
-            {
-                var eNew = ExceptionProducer(e);
-                if(eNew != null)
-                {
-                    throw eNew;
-                }
-                else
-                {
-                    throw;
-                }
-            }
-        }
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            (int length) =>
             {
-                throw new ArgumentNullException("parameter");
-            }
-
-            try
-            {
-                var length = System.Convert.ToInt32(parameter);
                 if(length < 1)
                 {
                     throw new ArgumentException(string.Format("Value of 'parameter' ({0}) could not be less then 1", parameter), "parameter");
                 }
-                return RunUnsafe(length);
-            }
-            catch(Exception e)
-            {
-                if(e is InvalidCastException || e is FormatException || e is OverflowException)
+
+                var data = new byte[length];
+                try
                 {
-                    throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not int", parameter), "parameter", e);
+                    try
+                    {
+                        var readingAsyncResult = Stream.BeginRead(data, 0, data.Length, null, data);
+                        return new PayloadResultContinuationPending(readingAsyncResult);
+                    }
+                    catch(IOException)
+                    {
+                        // reading past stream end, means we have read all the stream
+                        OnReadPastStreamEnd();
+                        return new PayloadResultSucceeded();
+                    }
                 }
-                else
+                catch(Exception e)
                 {
-                    throw;
+                    var eNew = ExceptionProducer(e);
+                    if(eNew != null)
+                    {
+                        throw eNew;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
-            }
+            });
         }
     }
 }

@@ -19,18 +19,8 @@ namespace compressor.Processor.Payload
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
-            {
-                throw new ArgumentNullException("parameter");
-            }
-
-            var blockToProcess = parameter as BlockToProcess;
-            if(blockToProcess == null)
-            {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not BlockToProcess", parameter), "parameter");
-            }
-
-            return new PayloadResultContinuationPending(Processor(blockToProcess));
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            (BlockToProcess blockToProcess) => new PayloadResultContinuationPending(Processor(blockToProcess)));
         }
     }
 }

@@ -25,55 +25,44 @@ namespace compressor.Common.Payload.Streams
         readonly Action OnReadPastStreamEnd;
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        PayloadResult RunUnsafe(IAsyncResult readingAsyncResult)
-        {
-            if(readingAsyncResult.IsCompleted)
-            {
-                try
-                {
-                    var totalRead = Stream.EndRead(readingAsyncResult);
-                    if(totalRead != 0)
-                    {
-                        var data = (byte[])readingAsyncResult.AsyncState;
-                        return new PayloadResultContinuationPending(data.SubArray(0, totalRead));
-                    }
-                    else
-                    {
-                        // finsihed reading, no more to process
-                        OnReadPastStreamEnd();
-                        return new PayloadResultSucceeded();
-                    }
-                }
-                catch(Exception e)
-                {
-                    var eNew = ExceptionProducer(e);
-                    if(eNew != null)
-                    {
-                        throw eNew;
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-
-            return new PayloadResultContinuationPendingDoneNothing();
-        }
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(parameter == null)
+            return VerifyParameterNotNullConvertAndRunUnsafe(parameter,
+            (IAsyncResult readingAsyncResult) =>
             {
-                throw new ArgumentNullException("parameter");
-            }
+                if(readingAsyncResult.IsCompleted)
+                {
+                    try
+                    {
+                        var totalRead = Stream.EndRead(readingAsyncResult);
+                        if(totalRead != 0)
+                        {
+                            var data = (byte[])readingAsyncResult.AsyncState;
+                            return new PayloadResultContinuationPending(data.SubArray(0, totalRead));
+                        }
+                        else
+                        {
+                            // finsihed reading, no more to process
+                            OnReadPastStreamEnd();
+                            return new PayloadResultSucceeded();
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        var eNew = ExceptionProducer(e);
+                        if(eNew != null)
+                        {
+                            throw eNew;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
 
-            var readingAsyncResult = parameter as IAsyncResult;
-            if(readingAsyncResult == null)
-            {
-                throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not IAsyncResult", parameter), "parameter");
-            }
-
-            return RunUnsafe(readingAsyncResult);
+                return new PayloadResultContinuationPendingDoneNothing();
+            });
         }
     }
 }
