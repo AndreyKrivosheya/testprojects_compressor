@@ -95,10 +95,10 @@ namespace compressor.Processor.Settings
             MaxQueueSizeLazy = new Lazy<int>(() => {
                     var def = 100;
                     var value = ReadFromEnvironmentVariableAndConvertToInt("COMPRESSOR_MAX_QUEUE_SIZE", def);
-                    return Math.Max(Math.Min(value >= 1 ? value : def, (int)(2L * 1024 * 1024 * 1024 / BlockSize)), 1);
+                    return Math.Max(Math.Min(value >= 2 ? value : def, (int)(2L * 1024 * 1024 * 1024 / BlockSize)), 2);
                 });
             MaxBlocksToWriteAtOnceLazy = new Lazy<int>(() => {
-                    var def = MaxQueueSize / 2;
+                    var def = MaxQueueSize / 10;
                     var value = ReadFromEnvironmentVariableAndConvertToInt("COMPRESSOR_MAX_BLOCKS_TO_WRITE_AT_ONCE", def);
                     return Math.Min(value >= 1 ? value : def, MaxQueueSize);
                 });

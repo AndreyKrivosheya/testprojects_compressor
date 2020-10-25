@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading;
 
 using compressor.Common;
 using compressor.Processor.Queue;
@@ -8,10 +9,10 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadDecompress: PayloadCompressDescompress
+    class PayloadProcessDecompress : PayloadProcess
     {
-        public PayloadDecompress(SettingsProvider settings)
-            : base(settings, DecompressBlock)
+        public PayloadProcessDecompress(CancellationTokenSource cancellationTokenSource)
+            : base(cancellationTokenSource, DecompressBlock)
         {
         }
 

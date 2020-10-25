@@ -1,7 +1,8 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.IO.Compression;
+using System.Linq;
+using System.Threading;
 
 using compressor.Common;
 using compressor.Processor.Queue;
@@ -9,10 +10,10 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadCompress: PayloadCompressDescompress
+    class PayloadProcessCompress : PayloadProcess
     {
-        public PayloadCompress(SettingsProvider settings)
-            : base(settings, CompressBlock)
+        public PayloadProcessCompress(CancellationTokenSource cancellationTokenSource)
+            : base(cancellationTokenSource, CompressBlock)
         {
         }
 
@@ -59,5 +60,6 @@ namespace compressor.Processor.Payload
         {
             return new BlockToWrite(block, CompressData(block.Data));
         }
+
     }
 }
