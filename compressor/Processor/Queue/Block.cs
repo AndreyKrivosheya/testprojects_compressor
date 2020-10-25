@@ -31,14 +31,16 @@ namespace compressor.Processor.Queue
                             BlockAddedToQueueLazy.Value.Set();
                         }
                     }
+                    Previous = null;
                     BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
                 }
             }
             public bool WaitAllPreviousBlocksAddedToQueue(int milliseconds, CancellationToken cancellationToken)
             {
-                if(null != Previous)
+                var previous = Previous;
+                if(null != previous)
                 {
-                    if(!Previous.WaitThisAndAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken))
+                    if(!previous.WaitThisAndAllPreviousBlocksAddedToQueue(milliseconds, cancellationToken))
                     {
                         return false;
                     }

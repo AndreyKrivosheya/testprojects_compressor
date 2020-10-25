@@ -28,31 +28,44 @@ namespace compressor.Processor
             var queueToWrite = new QueueToWrite(queueSize);
 
             var concurrency = Settings.MaxConcurrency;
+            var cancellation = new CancellationTokenSource();
             var threads = new Thread[concurrency - 1];
-            var threadsPayloads = new Payload.Payload[concurrency - 1];
+            var threadsPayloads = new Common.Payload.Payload[concurrency - 1];
             var threadsErrors = new ExceptionDispatchInfo[concurrency - 1];
 
             // spawn processors, if needed
             for(int i = 0; i < concurrency - 1; i++)
             {
-                threadsPayloads[i] = PayloadFactory.CreateCompressDecompress(Settings);
-                threads[i] = new Thread((object task) => {
+                //threadsPayloads[i] = PayloadFactory.CreateCompressDecompress(Settings);
+                threadsPayloads[i] = (new Payload2.PayloadFactoryCompress(cancellation, Settings)).CreateProcess(queueToProcess, queueToWrite);
+                threads[i] = new Thread((object idxRaw) => {
+                    var idx = (int)idxRaw;
                     try
                     {
-                        ((Payload.Payload)task).Run(queueToProcess, queueToWrite);
+                        var payloadResult = threadsPayloads[idx].Run();
+                        if(payloadResult.Status == Common.Payload.PayloadResultStatus.Failed)
+                        {
+                            threadsErrors[idx] = ((Common.Payload.PayloadResultFailed)payloadResult).Failure;
+                        }
                     }
                     catch(Exception e)
                     {
                         System.Diagnostics.Debug.WriteLine(e);
-                        threadsErrors[i] = ExceptionDispatchInfo.Capture(e);
+                        threadsErrors[idx] = ExceptionDispatchInfo.Capture(e);
                     }
                 }) { IsBackground = true, Name = string.Format("Processor[{0}]: Process worker", i) };
-                threads[i].Start(threadsPayloads[i]);
+                threads[i].Start(i);
             }
             // run reader/processor/writer
             try
             {
-                PayloadFactory.CreateReadCompressDecompressWrite(Settings, InputStream, OutputStream, threads).Run(queueToProcess, queueToWrite);
+                //PayloadFactory.CreateReadCompressDecompressWrite(Settings, InputStream, OutputStream, threads).Run(queueToProcess, queueToWrite);
+                var payload = (new Payload2.PayloadFactoryCompress(cancellation, Settings)).CreateReadProcessWrite(InputStream, OutputStream, queueToProcess, queueToWrite, threads);
+                var payloadResult = payload.Run();
+                if(payloadResult.Status == Common.Payload.PayloadResultStatus.Failed)
+                {
+                    ((Common.Payload.PayloadResultFailed)payloadResult).Failure.Throw();
+                }
             }
             catch(Exception)
             {
