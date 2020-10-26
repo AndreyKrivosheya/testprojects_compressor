@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace compressor.Processor.Queue
 {
-    class Queue<TBlock>
+    class Queue<TBlock> : IDisposable
         where TBlock: Block
     {
         public Queue(int maxCapacity)
@@ -16,6 +16,11 @@ namespace compressor.Processor.Queue
         readonly BlockingCollection<TBlock> Implementation;
         public readonly int MaxCapacity;
 
+        public void Dispose()
+        {
+            Implementation.Dispose();
+        }
+        
         public virtual bool TryAdd(TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             return Implementation.TryAdd(item, millisecondsTimeout, cancellationToken);
