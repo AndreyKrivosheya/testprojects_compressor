@@ -93,7 +93,7 @@ namespace compressor.Processor
             // if engaged: get block out of queue-to-process, process (compress/decompress) and add result to queue-to-write
             // when processing completed close queue-to-write for additions
             return FactoryBasic.ConditionalOnceAndForever(
-                () => queueToWrite.IsCompleted || queueToProcess.IsHalfFull(),
+                () => queueToProcess.IsAlmostFull(),
                 CreateProcessSubpayload(queueToProcess, queueToWrite, 0)
             );
         }
@@ -133,9 +133,9 @@ namespace compressor.Processor
         public sealed override Common.Payload.Payload CreateReadProcessWrite(Stream inputStream, Stream outputStream, QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             return FactoryBasic.Repeat(FactoryBasic.Sequence(
-                CreateReadProcessWriteSubpayloadRead(inputStream, queueToProcess),
-                CreateReadProcessWriteSubpayloadProcess(queueToProcess, queueToWrite),
-                CreateReadProcessWriteSubpayloadWrite(queueToWrite, outputStream)
+                (CreateReadProcessWriteSubpayloadRead(inputStream, queueToProcess), true),
+                (CreateReadProcessWriteSubpayloadProcess(queueToProcess, queueToWrite), false),
+                (CreateReadProcessWriteSubpayloadWrite(queueToWrite, outputStream), true)
             ));
         }
 

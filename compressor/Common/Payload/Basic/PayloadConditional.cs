@@ -38,7 +38,7 @@ namespace compressor.Common.Payload.Basic
                     }
                     else
                     {
-                        return new PayloadResultContinuationPendingDoneNothing();
+                        return new PayloadResultContinuationPendingEvaluatedToEmptyPayload();
                     }
                 }
                 else
@@ -49,7 +49,7 @@ namespace compressor.Common.Payload.Basic
                     }
                     else
                     {
-                        return new PayloadResultContinuationPendingDoneNothing();
+                        return new PayloadResultContinuationPendingEvaluatedToEmptyPayload();
                     }
                 }
             }

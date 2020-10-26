@@ -6,6 +6,7 @@ namespace compressor.Common.Payload
         Canceled,
         Failed,
         ContinuationPending,
-        ContinuationPendingDoneNothing
+        ContinuationPendingDoneNothing,
+        ContinuationPendingEvaluatedToEmptyPayload
     }
 }

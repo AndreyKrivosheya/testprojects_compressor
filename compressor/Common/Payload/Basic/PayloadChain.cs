@@ -55,6 +55,7 @@ namespace compressor.Common.Payload.Basic
                             return payloadCurrentResult;
                         }
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
+                    case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
                         return payloadCurrentResult;
                     case PayloadResultStatus.Succeeded:
                     case PayloadResultStatus.Canceled:

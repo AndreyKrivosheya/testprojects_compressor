@@ -28,6 +28,7 @@ namespace compressor.Common.Payload.Basic
                         AwaiterWhenNothingDone.SpinOnce();
                         break;
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
+                    case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
                         // spent the cycle checking if anything is ready to work on
                         // ... to the next runcycle
                         AwaiterWhenNothingDone.SpinOnce();

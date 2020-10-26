@@ -5,7 +5,8 @@ namespace compressor.Common.Payload
         protected enum ContinuationStatus
         {
             DoneSomething,
-            DoneNothing
+            DoneNothing,
+            EvaluatedToEmptyPayload,
         }
         protected PayloadResultContinuationPendingBase(ContinuationStatus status, object result)
             : base(ContinuationStatusToResultStatus(status), result)
@@ -21,6 +22,8 @@ namespace compressor.Common.Payload
         {
             switch(status)
             {
+                case ContinuationStatus.EvaluatedToEmptyPayload:
+                    return PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload;
                 case ContinuationStatus.DoneSomething:
                     return PayloadResultStatus.ContinuationPending;
                 case ContinuationStatus.DoneNothing:

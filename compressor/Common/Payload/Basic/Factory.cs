@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -49,13 +50,21 @@ namespace compressor.Common.Payload.Basic
             return new PayloadConditionalOnceAndForever(CancellationTokenSource, condition, payloadIfTrue);
         }
 
+        public Common.Payload.Payload Sequence(IEnumerable<(Common.Payload.Payload Payload, bool Mandatory)> payloads)
+        {
+            return new PayloadSequence(CancellationTokenSource, payloads);
+        }
         public Common.Payload.Payload Sequence(IEnumerable<Common.Payload.Payload> payloads)
+        {
+            return Sequence(payloads.Select(x => (x, true)));
+        }
+        public Common.Payload.Payload Sequence(params (Common.Payload.Payload Payload, bool Mandatory)[] payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
         }
         public Common.Payload.Payload Sequence(params Common.Payload.Payload[] payloads)
         {
-            return new PayloadSequence(CancellationTokenSource, payloads);
+            return Sequence(payloads.Select(x => (x, true)));
         }
 
         public Common.Payload.Payload Chain(IEnumerable<Common.Payload.Payload> payloads)

@@ -7,84 +7,115 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadSequence: Payload
     {
-        public PayloadSequence(CancellationTokenSource cancellationTokenSource, IEnumerable<Common.Payload.Payload> payloads)
+        public PayloadSequence(CancellationTokenSource cancellationTokenSource, IEnumerable<(Common.Payload.Payload Payload, bool Mandatory)> payloads)
             : base(cancellationTokenSource)
         {
-            this.Payloads = new List<PayloadWithFinishedState>(payloads.Select(x => new PayloadWithFinishedState(x)));
+            this.Payloads = new List<PayloadWithState>(payloads.Select(x => new PayloadWithState(x.Payload, x.Mandatory)));
         }
-        public PayloadSequence(CancellationTokenSource cancellationTokenSource, params Common.Payload.Payload[] payloads)
+        public PayloadSequence(CancellationTokenSource cancellationTokenSource, params (Common.Payload.Payload Payload, bool Mandatory)[] payloads)
             : this(cancellationTokenSource, payloads.AsEnumerable())
         {
         }
 
-        class PayloadWithFinishedState
+        class PayloadWithState
         {
-            public PayloadWithFinishedState(Common.Payload.Payload payload)
+            public PayloadWithState(Common.Payload.Payload payload, bool mandatory)
             {
                 this.Payload = payload;
+                this.Mandatory = mandatory;
             }
 
             public readonly Common.Payload.Payload Payload;
+            
+            public readonly bool Mandatory;
+
+            public bool RanAtLeastOnce = false;
             public bool Finished = false;
         }
 
-        readonly List<PayloadWithFinishedState> Payloads;
+        readonly List<PayloadWithState> Payloads;
         
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            var allSucceeded = true;
-            var allDoneNothing = true;
-            foreach(var payload in Payloads)
+            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
+            // if no unfinished paylaods
+            if(!payloadsUnfinished.Any())
             {
-                if(!payload.Finished)
-                {
-                    var payloadResult = payload.Payload.Run(parameter);
-                    switch(payloadResult.Status)
-                    {
-                        case PayloadResultStatus.Succeeded:
-                            // will not run succeedeed payload in future
-                            payload.Finished = true;
-                            // ...
-                            allDoneNothing = false;
-                            break;
-                        case PayloadResultStatus.ContinuationPendingDoneNothing:
-                            allSucceeded = false;
-                            break;
-                        case PayloadResultStatus.ContinuationPending:
-                            allSucceeded = false;
-                            allDoneNothing = false;
-                            break;
-                        case PayloadResultStatus.Canceled:
-                        case PayloadResultStatus.Failed:
-                        default:
-                            return payloadResult;
-                    }
-                }
-            }
-
-            if(allSucceeded && allDoneNothing)
-            {
-                // were nothing to do actually
                 return new PayloadResultSucceeded();
             }
             else
             {
-                if(!allSucceeded && !allDoneNothing)
+                // if all unfinished payloads are either not mandatory or were never run
+                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
                 {
-                    // some work was done but not all is finished
-                    return new PayloadResultContinuationPending();
+                    return new PayloadResultSucceeded();
                 }
                 else
                 {
-                    if(allSucceeded)
+                    var allSucceeded = true;
+                    var allDoneNothing = true;
+                    foreach(var payload in Payloads.Where(x => !x.Finished))
                     {
-                        // all work is done
+                        var payloadResult = payload.Payload.Run(parameter);
+                        switch(payloadResult.Status)
+                        {
+                            case PayloadResultStatus.Succeeded:
+                            case PayloadResultStatus.ContinuationPendingDoneNothing:
+                            case PayloadResultStatus.ContinuationPending:
+                                payload.RanAtLeastOnce = true;
+                                switch(payloadResult.Status)
+                                {
+                                    case PayloadResultStatus.Succeeded:
+                                        // will not run succeedeed payload in future
+                                        payload.Finished = true;
+                                        // ...
+                                        allDoneNothing = false;
+                                        break;
+                                    case PayloadResultStatus.ContinuationPendingDoneNothing:
+                                        allSucceeded = false;
+                                        break;
+                                    case PayloadResultStatus.ContinuationPending:
+                                    default:
+                                        allSucceeded = false;
+                                        allDoneNothing = false;
+                                        break;
+                                }
+                                break;
+                            case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
+                                allSucceeded = false;
+                                break;
+                            case PayloadResultStatus.Canceled:
+                            case PayloadResultStatus.Failed:
+                            default:
+                                return payloadResult;
+                        }
+                    }
+
+                    if(allSucceeded && allDoneNothing)
+                    {
+                        // were nothing to do actually
                         return new PayloadResultSucceeded();
                     }
-                    else /*if(allDoneNothing)*/
+                    else
                     {
-                        // no work was done
-                        return new PayloadResultContinuationPendingDoneNothing();
+                        if(!allSucceeded && !allDoneNothing)
+                        {
+                            // some work was done but not all is finished
+                            return new PayloadResultContinuationPending();
+                        }
+                        else
+                        {
+                            if(allSucceeded)
+                            {
+                                // all work is done
+                                return new PayloadResultSucceeded();
+                            }
+                            else /*if(allDoneNothing)*/
+                            {
+                                // no work was done
+                                return new PayloadResultContinuationPendingDoneNothing();
+                            }
+                        }
                     }
                 }
             }
