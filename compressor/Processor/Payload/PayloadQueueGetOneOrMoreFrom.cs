@@ -30,6 +30,10 @@ namespace compressor.Processor.Payload
                     {
                         taken = Queue.TryTake(out blockFromQueue, Timeout, CancellationTokenSource.Token);
                     }
+                    catch(OperationCanceledException)
+                    {
+                        return new PayloadResultCanceled();
+                    }
                     catch(InvalidOperationException)
                     {
                         if(Queue.IsCompleted)

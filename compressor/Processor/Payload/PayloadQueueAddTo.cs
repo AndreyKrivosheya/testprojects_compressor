@@ -37,6 +37,10 @@ namespace compressor.Processor.Payload
                     }
                 }
             }
+            catch(OperationCanceledException)
+            {
+                return new PayloadResultCanceled();
+            }
             catch(InvalidOperationException)
             {
                 if(Queue.IsAddingCompleted)
