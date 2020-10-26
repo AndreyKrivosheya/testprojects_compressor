@@ -9,11 +9,16 @@ namespace compressor.Processor.Queue
     {
         public Queue(int maxCapacity)
         {
+            if(maxCapacity < 1)
+            {
+                throw new ArgumentException("Can't limit collection to less than 1 item", "maxCapacity");
+            }
+
             this.MaxCapacity = maxCapacity;
-            this.Implementation = new BlockingCollection<TBlock>(new ConcurrentQueue<TBlock>(), maxCapacity);
+            this.Implementation = new Custom.LimitableCollection<TBlock, ConcurrentQueue<TBlock>>(maxCapacity);
         }
 
-        readonly BlockingCollection<TBlock> Implementation;
+        readonly Custom.LimitableCollection<TBlock> Implementation;
         public readonly int MaxCapacity;
 
         public void Dispose()
@@ -53,6 +58,7 @@ namespace compressor.Processor.Queue
                 return Implementation.IsAddingCompleted;
             }
         }
+        
         public virtual bool CompleteAdding(int millisecondsTimeout, CancellationToken cancellationToken)
         {
             Implementation.CompleteAdding();
