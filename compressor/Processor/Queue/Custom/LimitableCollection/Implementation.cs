@@ -1,8 +1,9 @@
+using System;
 using System.Threading;
 
 namespace compressor.Processor.Queue.Custom.LimitableCollection
 {
-    interface Implementation<T>
+    interface Implementation<T> : IDisposable
     {
         int Count { get; }
 
@@ -13,7 +14,7 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         bool TryAdd(T item, int millisecondsTimeout, CancellationToken cancellationToken);
         bool TryAdd(T item, int millisecondsTimeout);
 
-        bool CompleteAdding();
+        void CompleteAdding();
        
         bool TryTake(out T item, int millisecondsTimeout, CancellationToken cancellationToken);
         bool TryTake(out T item, int millisecondsTimeout);

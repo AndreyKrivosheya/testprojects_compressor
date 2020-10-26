@@ -15,7 +15,7 @@ namespace compressor.Processor.Queue
             }
 
             this.MaxCapacity = maxCapacity;
-            this.Implementation = new Custom.LimitableCollection<TBlock>(maxCapacity);
+            this.Implementation = new Custom.LimitableCollection<TBlock, ConcurrentQueue<TBlock>>(maxCapacity);
         }
 
         readonly Custom.LimitableCollection<TBlock> Implementation;

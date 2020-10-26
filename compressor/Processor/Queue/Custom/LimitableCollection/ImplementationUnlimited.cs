@@ -1,6 +1,9 @@
+using System.Collections.Concurrent;
+
 namespace compressor.Processor.Queue.Custom.LimitableCollection
 {
-    class ImplementationUnlimited<T>: ImplementationBase<T>
+    sealed class ImplementationUnlimited<T, TCollection>: ImplementationBase<T, TCollection>
+        where TCollection: IProducerConsumerCollection<T>, new()
     {
         public ImplementationUnlimited()
         {

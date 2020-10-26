@@ -1,9 +1,28 @@
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 
 namespace compressor.Processor.Queue.Custom
 {
-    class LimitableCollection<T>
+    interface LimitableCollection<T> : IDisposable
+    {
+        int Count { get; }
+
+        bool IsCompleted { get; }
+        
+        bool IsAddingCompleted { get; }
+
+        bool TryAdd(T item, int millisecondsTimeout, CancellationToken cancellationToken);
+        bool TryAdd(T item, int millisecondsTimeout);
+
+        void CompleteAdding();
+       
+        bool TryTake(out T item, int millisecondsTimeout, CancellationToken cancellationToken);
+        bool TryTake(out T item, int millisecondsTimeout);
+    }
+
+    class LimitableCollection<T, TCollection> : LimitableCollection<T>, IDisposable
+        where TCollection: IProducerConsumerCollection<T>, new()
     {
         public LimitableCollection(int maxCapacity)
         {
@@ -15,16 +34,21 @@ namespace compressor.Processor.Queue.Custom
             this.MaxCapacity = maxCapacity;
             if(maxCapacity < 1)
             {
-                Implementation = new LimitableCollection.ImplementationLimited<T>(this.MaxCapacity);
+                Implementation = new LimitableCollection.ImplementationLimited<T, TCollection>(this.MaxCapacity);
             }
             else
             {
-                Implementation = new LimitableCollection.ImplementationUnlimited<T>();
+                Implementation = new LimitableCollection.ImplementationUnlimited<T, TCollection>();
             }
         }
 
         public readonly int MaxCapacity;
         readonly LimitableCollection.Implementation<T> Implementation;
+
+        public void Dispose()
+        {
+            Implementation.Dispose();
+        }
 
         public int Count
         {
