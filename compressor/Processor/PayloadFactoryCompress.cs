@@ -44,7 +44,7 @@ namespace compressor.Processor
         protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream)
         {
             return FactoryBasic.Chain(
-                FactoryBasic.ReturnConstant(Settings.BlockSize),
+                FactoryBasic.ReturnValue(Settings.BlockSize),
                 FactoryCommonStreams.ReadBytesNoMoreThen(inputStream,
                     exceptionProducer: (e) => new ArgumentNullException("Failed to read block", e))
             );

@@ -11,9 +11,12 @@ namespace compressor.Processor.Payload
         public Factory(CancellationTokenSource cancellationTokenSource)
         {
             this.CancellationTokenSource = cancellationTokenSource;
+            this.FactoryBasic = new Common.Payload.Basic.Factory(this.CancellationTokenSource);
         }
 
         readonly CancellationTokenSource CancellationTokenSource;
+
+        readonly Common.Payload.Basic.Factory FactoryBasic;
 
         public Common.Payload.Payload QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
@@ -35,22 +38,28 @@ namespace compressor.Processor.Payload
             return new PayloadQueueGetOneFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
 
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
-        {
-            return new PayloadQueueGetOneOrMoreFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds, maxBlocksToGet);
-        }
         public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneOrMoreFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
-
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
         {
-            return new PayloadQueueGetOneOrMoreFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds, maxBlocksToGet);
+            return FactoryBasic.Chain(
+                FactoryBasic.ReturnValue(maxBlocksToGet),
+                QueueGetOneFromQueueToProcess(queue, queueOperationTimeoutMilliseconds)
+            );
         }
+
         public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneOrMoreFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        {
+            return FactoryBasic.Chain(
+                FactoryBasic.ReturnValue(maxBlocksToGet),
+                QueueGetOneOrMoreFromQueueToWrite(queue, queueOperationTimeoutMilliseconds)
+            );
         }
 
         public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)

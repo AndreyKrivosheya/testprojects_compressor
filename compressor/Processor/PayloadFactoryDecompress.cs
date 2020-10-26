@@ -49,7 +49,7 @@ namespace compressor.Processor
                 FactoryBasic.Chain(
                     // read block length bytes
                     FactoryBasic.Chain(
-                        FactoryBasic.ReturnConstant(sizeof(long)),
+                        FactoryBasic.ReturnValue(sizeof(long)),
                         FactoryCommonStreams.ReadBytesExactly(inputStream,
                             exceptionProducer: (e) => new ApplicationException("Failed to read block length"))
                     ),

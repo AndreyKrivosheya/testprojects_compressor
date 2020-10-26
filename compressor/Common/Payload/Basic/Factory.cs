@@ -18,9 +18,17 @@ namespace compressor.Common.Payload.Basic
             return new PayloadSucceed(CancellationTokenSource);
         }
         
-        public Common.Payload.Payload ReturnConstant(object constant)
+        public Common.Payload.Payload ReturnValue(Func<object, object> valueProvider)
         {
-            return new PayloadReturnConstant(CancellationTokenSource, constant);
+            return new PayloadReturnValue(CancellationTokenSource, valueProvider);
+        }
+        public Common.Payload.Payload ReturnValue(Func<object> valueProvider)
+        {
+            return new PayloadReturnValue(CancellationTokenSource, valueProvider);
+        }
+        public Common.Payload.Payload ReturnValue(object value)
+        {
+            return new PayloadReturnValue(CancellationTokenSource, value);
         }
 
         public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
