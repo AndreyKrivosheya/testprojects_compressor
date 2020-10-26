@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -10,10 +8,12 @@ namespace compressor.Common.Payload.Basic
             : base(cancellationTokenSource)
         {
             this.Payload = payload;
+            this.AwaiterWhenNothingDone = new SpinWait();
+            this.AwaiterWhenNothingDone.Reset();
         }
 
         readonly Payload Payload;
-        
+        readonly SpinWait AwaiterWhenNothingDone;
         protected override PayloadResult RunUnsafe(object parameter)
         {
             while(!CancellationTokenSource.IsCancellationRequested)
@@ -23,15 +23,20 @@ namespace compressor.Common.Payload.Basic
                 {
                     case PayloadResultStatus.ContinuationPending:
                         // some work was done, but that doesn't completed payload
+                        // ... to the next runcycle
+                        AwaiterWhenNothingDone.Reset();
+                        AwaiterWhenNothingDone.SpinOnce();
+                        break;
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
                         // spent the cycle checking if anything is ready to work on
                         // ... to the next runcycle
-                        Thread.Yield();
+                        AwaiterWhenNothingDone.SpinOnce();
                         break;
                     case PayloadResultStatus.Succeeded:
                     case PayloadResultStatus.Canceled:
                     case PayloadResultStatus.Failed:
                     default:
+                        AwaiterWhenNothingDone.Reset();
                         return payloadResult;
                 }
             }
