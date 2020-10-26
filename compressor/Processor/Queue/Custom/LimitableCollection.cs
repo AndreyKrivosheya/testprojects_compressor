@@ -34,11 +34,11 @@ namespace compressor.Processor.Queue.Custom
             this.MaxCapacity = maxCapacity;
             if(maxCapacity < 1)
             {
-                Implementation = new LimitableCollection.ImplementationLimited<T, TCollection>(this.MaxCapacity);
+                Implementation = new LimitableCollection.ImplementationUnlimited<T, TCollection>();
             }
             else
             {
-                Implementation = new LimitableCollection.ImplementationUnlimited<T, TCollection>();
+                Implementation = new LimitableCollection.ImplementationLimited<T, TCollection>(this.MaxCapacity);
             }
         }
 

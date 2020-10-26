@@ -259,7 +259,8 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
             }
             if(IsCompleted)
             {
-                throw new InvalidOperationException("Can't take out of empty collection for which adding is completed");
+                //throw new InvalidOperationException("Can't take out of empty collection for which adding is completed");
+                return false;
             }
 
             return TryTakeFromCollection(out item, millisecondsTimeout, cancellationToken);
