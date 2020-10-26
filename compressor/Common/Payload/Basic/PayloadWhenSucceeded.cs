@@ -4,9 +4,9 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadWhenFinished: Payload
+    class PayloadWhenSucceeded: Payload
     {
-        public PayloadWhenFinished(CancellationTokenSource cancellationTokenSource, Payload payload, Payload payloadAfterPayloadFinished)
+        public PayloadWhenSucceeded(CancellationTokenSource cancellationTokenSource, Payload payload, Payload payloadAfterPayloadFinished)
             : base(cancellationTokenSource)
         {
             this.Payload = payload;

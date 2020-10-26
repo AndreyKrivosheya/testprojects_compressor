@@ -31,7 +31,7 @@ namespace compressor.Processor
         // creates payload tree implementing single run of read-process-write payload
         protected Common.Payload.Payload CreateProcessSubpayload(QueueToProcess queueToProcess, QueueToWrite queueToWrite, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.WhenFinished(
+            return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
                     CreateProcessPayload(),
@@ -69,7 +69,7 @@ namespace compressor.Processor
         {
             // read block bytes, convert to block for queue-to-process and add to queue-to-process
             // when reading completed close queue-to-process for additions
-            return FactoryBasic.WhenFinished(
+            return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     //  read block bytes and convert to block for queue-to-process
                     FactoryBasic.Chain(
@@ -110,7 +110,7 @@ namespace compressor.Processor
         {
             // get blocks from queue-to-write, convert to bytes and write to archive
             // when writing completed, finalize
-            return FactoryBasic.WhenFinished(
+            return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     // get blocks from queue-to-write
                     FactoryProcessor.QueueGetOneOrMoreFromQueueToWrite(queueToWrite, 0, Settings.MaxBlocksToWriteAtOnce),

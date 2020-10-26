@@ -72,9 +72,9 @@ namespace compressor.Common.Payload.Basic
             return new PayloadRepeat(CancellationTokenSource, payload);
         }
    
-        public Common.Payload.Payload WhenFinished(Common.Payload.Payload payload, Common.Payload.Payload payloadAfterPayloadFinished)
+        public Common.Payload.Payload WhenSucceeded(Common.Payload.Payload payload, Common.Payload.Payload payloadAfterPayloadFinished)
         {
-            return new PayloadWhenFinished(CancellationTokenSource, payload, payloadAfterPayloadFinished);
+            return new PayloadWhenSucceeded(CancellationTokenSource, payload, payloadAfterPayloadFinished);
         }
    }
 }
