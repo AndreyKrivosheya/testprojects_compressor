@@ -37,7 +37,7 @@ namespace compressor.Common.Payload.Basic
 
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            return Template(
+            return TransformCurrentPayloadsLeftToRunTo<PayloadResult>(
                 whenNothingLeftToRun: () => new PayloadResultSucceeded(),
                 whenAnyLeftToRun:(payloadsUnfinished) => 
                 {
@@ -112,13 +112,13 @@ namespace compressor.Common.Payload.Basic
          
         protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
         {
-            return Template(
+            return TransformCurrentPayloadsLeftToRunTo<IEnumerable<Common.Payload.Payload>>(
                 whenNothingLeftToRun: () => Enumerable.Empty<Common.Payload.Payload>(),
                 whenAnyLeftToRun: (payloadsUnfinished) => payloadsUnfinished.Select(x => x.Payload)
             );
         }
 
-        T Template<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
+        T TransformCurrentPayloadsLeftToRunTo<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
         {
             var payloadsUnfinished = Payloads.Where(x => !x.Finished);
             // if no unfinished paylaods
