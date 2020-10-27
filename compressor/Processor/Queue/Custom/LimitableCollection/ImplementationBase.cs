@@ -183,8 +183,11 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
                             awaiter.SpinOnce();
                         }
 
-                        // wake up takers
-                        ConsumersCancellationTokenSource.Cancel();
+                        // wake up takers, if nothing to take from collection
+                        if(Count == 0)
+                        {
+                            ConsumersCancellationTokenSource.Cancel();
+                        }
 
                         return true;
                     }

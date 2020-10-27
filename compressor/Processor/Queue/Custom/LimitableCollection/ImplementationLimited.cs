@@ -93,11 +93,8 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         {
             if(base.CompleteAddingToCollection())
             {
-                // wake up adders, if nothing to take from collection
-                if(Count == 0)
-                {
-                    ProducersCancellationTokenSource.Cancel();
-                }
+                // wake up adders
+                ProducersCancellationTokenSource.Cancel();
                 return true;
             }
             else
