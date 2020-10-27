@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadSequence: Payload
+    class PayloadSequence: Payload, AwaitablesHolder
     {
         public PayloadSequence(CancellationTokenSource cancellationTokenSource, IEnumerable<(Common.Payload.Payload Payload, bool Mandatory)> payloads)
             : base(cancellationTokenSource)
@@ -34,6 +34,28 @@ namespace compressor.Common.Payload.Basic
         }
 
         readonly List<PayloadWithState> Payloads;
+
+        T TransformCurrentPayloadsLeftToRunTo<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
+        {
+            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
+            // if no unfinished paylaods
+            if(!payloadsUnfinished.Any())
+            {
+                return whenNothingLeftToRun();
+            }
+            else
+            {
+                // if all unfinished payloads are either not mandatory or were never run
+                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
+                {
+                    return whenNothingLeftToRun();
+                }
+                else
+                {
+                    return whenAnyLeftToRun(payloadsUnfinished);
+                }
+            }
+        }
 
         protected override PayloadResult RunUnsafe(object parameter)
         {
@@ -116,35 +138,17 @@ namespace compressor.Common.Payload.Basic
                 }
             );
         }
-         
-        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+
+        #region AwaitablesHolder implementation
+
+        IEnumerable<WaitHandle> AwaitablesHolder.GetAwaitables()
         {
-            return TransformCurrentPayloadsLeftToRunTo<IEnumerable<Common.Payload.Payload>>(
-                whenNothingLeftToRun: () => Enumerable.Empty<Common.Payload.Payload>(),
-                whenAnyLeftToRun: (payloadsUnfinished) => payloadsUnfinished.Select(x => x.Payload)
+            return TransformCurrentPayloadsLeftToRunTo<IEnumerable<WaitHandle>>(
+                whenNothingLeftToRun: () => Enumerable.Empty<WaitHandle>(),
+                whenAnyLeftToRun: (payloadsUnfinished) => payloadsUnfinished.SelectMany(x => x.Payload.GetAwaitables())
             );
         }
 
-        T TransformCurrentPayloadsLeftToRunTo<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
-        {
-            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
-            // if no unfinished paylaods
-            if(!payloadsUnfinished.Any())
-            {
-                return whenNothingLeftToRun();
-            }
-            else
-            {
-                // if all unfinished payloads are either not mandatory or were never run
-                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
-                {
-                    return whenNothingLeftToRun();
-                }
-                else
-                {
-                    return whenAnyLeftToRun(payloadsUnfinished);
-                }
-            }
-        }
+        #endregion
     }
 }

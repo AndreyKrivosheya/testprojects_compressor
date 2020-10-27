@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadConditional: Payload
+    class PayloadConditional: Payload, AwaitablesHolder
     {
         public PayloadConditional(CancellationTokenSource cancellationTokenSource, Func<object, bool> condition, Payload payloadIfTrue = null, Payload payloadIfFalse = null)
             : base(cancellationTokenSource)
@@ -56,24 +56,31 @@ namespace compressor.Common.Payload.Basic
             }
         }
          
-        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        #region AwaitablesHolder implementation
+
+        IEnumerable<WaitHandle> AwaitablesHolder.GetAwaitables()
         {
             if(PayloadIfTrue != null && PayloadIfFalse != null)
             {
-                return new [] { PayloadIfTrue, PayloadIfFalse };
+                return Enumerable.Concat(
+                    PayloadIfTrue.GetAwaitables(),
+                    PayloadIfFalse.GetAwaitables()
+                );
             }
             else if(PayloadIfTrue != null)
             {
-                return new [] { PayloadIfTrue };
+                return PayloadIfTrue.GetAwaitables();
             }
             else if(PayloadIfFalse != null)
             {
-                return new [] { PayloadIfFalse };
+                return PayloadIfFalse.GetAwaitables();
             }
             else
             {
-                return Enumerable.Empty<Common.Payload.Payload>();
+                return Enumerable.Empty<WaitHandle>();
             }
         }
-   }
+
+        #endregion
+    }
 }

@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadRepeat: Payload
+    class PayloadRepeat: Payload, AwaitablesHolder
     {
         public PayloadRepeat(CancellationTokenSource cancellationTokenSource, Payload payload)
             : base(cancellationTokenSource)
@@ -29,10 +29,10 @@ namespace compressor.Common.Payload.Basic
                     case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
                         // spent the cycle checking if anything is ready to work on
                         // ... be gentle with the CPU, don't waste all onto checking if there's nothing to do
-                        var awaitables = GetAllWaitHandlesForRepeatAwaiting();
+                        var awaitables = this.GetAwaitables();
                         if(awaitables.Any())
                         {
-                            //var awaitablesForDebug = awaitables.ToArray();
+                            var awaitablesForDebug = awaitables.ToArray();
                             WaitHandle.WaitAny(Enumerable.Concat(new [] { CancellationTokenSource.Token.WaitHandle }, awaitables).ToArray(), 100);
                         }
                         else
@@ -51,9 +51,13 @@ namespace compressor.Common.Payload.Basic
             return new PayloadResultCanceled();
         }
         
-        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        #region AwaitablesHolder implementation 
+
+        IEnumerable<WaitHandle> AwaitablesHolder.GetAwaitables()
         {
-            return new [] { Payload };
+            return Payload.GetAwaitables();
         }
+
+        #endregion
     }
 }

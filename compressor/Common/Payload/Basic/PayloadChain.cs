@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadChain: Payload
+    class PayloadChain: Payload, AwaitablesHolder
     {
         public PayloadChain(CancellationTokenSource cancellationTokenSource, IEnumerable<Payload> payloads)
             : base(cancellationTokenSource)
@@ -72,26 +72,31 @@ namespace compressor.Common.Payload.Basic
             return new PayloadResultContinuationPending();
         }
 
-        protected override IEnumerable<WaitHandle> GetAllImmediateWaitHandlesForRepeatAwaiting()
+        #region AwaitablesHolder implementation
+
+        IEnumerable<WaitHandle> AwaitablesHolder.GetAwaitables()
         {
             var PayloadCurrentParameterAsWaitHandle = PayloadCurrentParameter as WaitHandle;
             if(PayloadCurrentParameterAsWaitHandle != null)
             {
-                return new [] { PayloadCurrentParameterAsWaitHandle };
+                return Enumerable.Concat(
+                    new [] { PayloadCurrentParameterAsWaitHandle },
+                    Payloads.GetAwaitables()
+                );
             }
             
             var PayloadCurrentParameterAsIAsyncResult = PayloadCurrentParameter as IAsyncResult;
             if(PayloadCurrentParameterAsIAsyncResult != null)
             {
-                return new [] { PayloadCurrentParameterAsIAsyncResult.AsyncWaitHandle };
+                return Enumerable.Concat(
+                    new [] { PayloadCurrentParameterAsIAsyncResult.AsyncWaitHandle },
+                    Payloads.GetAwaitables()
+                );
             }
 
-            return Enumerable.Empty<WaitHandle>();
+            return Payloads.GetAwaitables();
         }
 
-        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
-        {
-            return Payloads;
-        }
+        #endregion
     }
 }

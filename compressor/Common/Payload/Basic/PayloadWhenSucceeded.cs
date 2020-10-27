@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Basic
 {
-    class PayloadWhenSucceeded: Payload
+    class PayloadWhenSucceeded: Payload, AwaitablesHolder
     {
         public PayloadWhenSucceeded(CancellationTokenSource cancellationTokenSource, Payload payload, Payload payloadAfterPayloadFinished)
             : base(cancellationTokenSource)
@@ -69,20 +69,25 @@ namespace compressor.Common.Payload.Basic
             }
         }
 
-        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+
+        #region AwaitablesHolder implementation
+
+        IEnumerable<WaitHandle> AwaitablesHolder.GetAwaitables()
         {
             if(PayloadSucceeded && PayloadAfterPayloadSucceededSuceeded)
             {
-                return Enumerable.Empty<Common.Payload.Payload>();
+                return Enumerable.Empty<WaitHandle>();
             }
             else if(PayloadSucceeded)
             {
-                return new [] { PayloadAfterPayloadSucceeded };
+                return PayloadAfterPayloadSucceeded.GetAwaitables();
             }
             else
             {
-                return new [] { Payload };
+                return Payload.GetAwaitables();
             }
         }
+
+        #endregion
     }
 }
