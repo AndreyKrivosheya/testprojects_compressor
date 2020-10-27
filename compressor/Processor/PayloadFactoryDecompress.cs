@@ -22,9 +22,9 @@ namespace compressor.Processor
         {
         }
 
-        #region Processor payload factory
+        #region Compress/Decompress payload factory
 
-        // creates immediate compress/decompress processor paylod
+        // creates immediate compress/decompress paylod
         protected sealed override Common.Payload.Payload CreateProcessPayload()
         {
             return FactoryProcessor.ProcessDecompress();
@@ -33,11 +33,11 @@ namespace compressor.Processor
 
         #endregion
 
-        #region ReaderProcessorWrtier payload factory
+        #region Read-Compress/Decompress-Write payload factory
 
-        #region ReaderProcessorWriter Reader subpayload factory
+        #region Read-Compress/Decompress-Write read subpayload factory
 
-        // creates immediate block read bytes from input payload
+        // creates immediate read block bytes from input payload
         protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream, int streamOperationTimeoutMilliseconds)
         {
             return FactoryBasic.Chain(
@@ -64,7 +64,7 @@ namespace compressor.Processor
 
         #endregion
 
-        #region ReaderProcessorWriter Writer subpayload factory
+        #region Read-Compress/Decompress-Write write subpayload factory
 
         // creates immediate blocks for queue-to-write to bytes for writing convertion payload
         protected sealed override Common.Payload.Payload CreateBlocksToWriteToBytesPayload()

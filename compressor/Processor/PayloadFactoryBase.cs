@@ -21,12 +21,12 @@ namespace compressor.Processor
         {
         }
         
-        #region Processor payload factory
+        #region Compress/Decompress payload factory
 
-        // creates immediate compress/decompress processor paylod
+        // creates immediate compress/decompress compress/decompress paylod
         protected abstract Common.Payload.Payload CreateProcessPayload();
 
-        // creates payload tree implementing single run of read-process-write payload
+        // creates payload tree implementing single run of compress/decompress payload
         protected Common.Payload.Payload CreateProcessSubpayload(QueueToProcess queueToProcess, QueueToWrite queueToWrite, int queueOperationTimeoutMilliseconds)
         {
             return FactoryBasic.WhenSucceeded(
@@ -43,6 +43,7 @@ namespace compressor.Processor
             );
         }
 
+        // creates payload tree implementing run of compress/decompress payload
         public sealed override Common.Payload.Payload CreateProcess(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             return FactoryBasic.Repeat(
@@ -52,21 +53,21 @@ namespace compressor.Processor
 
         #endregion
 
-        #region ReaderProcessorWrtier payload factory
+        #region Read-Compress/Decompress-Write payload factory
 
-        #region ReaderProcessorWriter Reader subpayload factory
+        #region Read-Compress/Decompress-Write read subpayload factory
 
-        // creates immediate block read bytes from input payload
+        // creates immediate read block bytes from stream payload
         protected abstract Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream, int streamOperationTimeoutMilliseconds);
 
         // creates immediate bytes read to block for queue-to-process convertion payload
         protected abstract Common.Payload.Payload CreateBytesToBlockToProcessPayload();
 
-        // creates read subpayload of payload tree implementing run of compress/decompress processor payload
+        // creates read subpayload of payload tree implementing run of read-compress/decompress-write payload
         Common.Payload.Payload CreateReadProcessWriteSubpayloadRead(Stream inputStream, QueueToProcess queueToProcess)
         {
             // read block bytes, convert to block for queue-to-process and add to queue-to-process
-            // when reading completed close queue-to-process for additions
+            // when reading completed: close queue-to-process for additions
             return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     //  read block bytes and convert to block for queue-to-process
@@ -84,13 +85,13 @@ namespace compressor.Processor
        
         #endregion
 
-        #region ReaderProcessorWriter Processor subpayload factory
+        #region Read-Compress/Decompress-Write compress/decompress subpayload factory
 
-        // creates process subpayload of payload tree implementing run of compress/decompress processor payload
+        // creates compress/decompress subpayload of payload tree implementing run of read-compress/decompress-write payload
         Common.Payload.Payload CreateReadProcessWriteSubpayloadProcess(QueueToProcess queueToProcess, QueueToWrite queueToWrite)
         {
             // if engaged: get block out of queue-to-process, process (compress/decompress) and add result to queue-to-write
-            // when processing completed close queue-to-write for additions
+            // when processing completed: close queue-to-write for additions
             return FactoryBasic.ConditionalOnceAndForever(
                 () => queueToProcess.IsFull() || queueToProcess.IsAddingCompleted,
                 CreateProcessSubpayload(queueToProcess, queueToWrite, TimeoutImmediate)
@@ -99,16 +100,16 @@ namespace compressor.Processor
 
         #endregion
 
-        #region ReaderProcessorWriter Writer subpayload factory
+        #region Read-Compress/Decompress-Write write subpayload factory
 
         // creates immediate blocks for queue-to-write to bytes for writing convertion payload
         protected abstract Common.Payload.Payload CreateBlocksToWriteToBytesPayload();
 
-        // creates write subpayload tree of payload tree implementing run of compress/decompress processor payload
+        // creates write subpayload tree of payload tree implementing run of read-compress/decompress-write payload
         Common.Payload.Payload CreateReadProcessWriteSubpayloadWrite(QueueToWrite queueToWrite, Stream outputStream)
         {
-            // get blocks from queue-to-write, convert to bytes and write to archive
-            // when writing completed, finalize
+            // get blocks from queue-to-write, converts to bytes and writes to archive
+            // when writing completed: flushes
             return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     // get blocks from queue-to-write

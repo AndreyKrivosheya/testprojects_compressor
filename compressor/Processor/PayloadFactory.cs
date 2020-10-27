@@ -33,10 +33,10 @@ namespace compressor.Processor
         protected readonly Common.Payload.Convert.Factory FactoryCommonConvert;
         protected readonly Factory FactoryProcessor;
         
-        // creates payload tree implementing run of compress/decompress processor payload
+        // creates payload tree implementing run of compress/decompress payload
         public abstract Common.Payload.Payload CreateProcess(QueueToProcess queueToProcess, QueueToWrite queueToWrite);
 
-        // creates payload tree implementing run of compress/decompress processor payload
+        // creates payload tree implementing run of read-compress/decompress-write payload
         public abstract Common.Payload.Payload CreateReadProcessWrite(Stream inputStream, Stream outputStream, QueueToProcess queueToProcess, QueueToWrite queueToWrite);
     }
 }
