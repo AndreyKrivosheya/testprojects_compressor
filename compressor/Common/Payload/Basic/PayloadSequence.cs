@@ -45,38 +45,45 @@ namespace compressor.Common.Payload.Basic
                     var allDoneNothing = true;
                     foreach(var payload in payloadsUnfinished)
                     {
-                        var payloadResult = payload.Payload.Run(parameter);
-                        switch(payloadResult.Status)
+                        if(CancellationTokenSource.IsCancellationRequested)
                         {
-                            case PayloadResultStatus.Succeeded:
-                            case PayloadResultStatus.ContinuationPendingDoneNothing:
-                            case PayloadResultStatus.ContinuationPending:
-                                payload.RanAtLeastOnce = true;
-                                switch(payloadResult.Status)
-                                {
-                                    case PayloadResultStatus.Succeeded:
-                                        // will not run succeedeed payload in future
-                                        payload.Finished = true;
-                                        // ...
-                                        allDoneNothing = false;
-                                        break;
-                                    case PayloadResultStatus.ContinuationPendingDoneNothing:
-                                        allSucceeded = false;
-                                        break;
-                                    case PayloadResultStatus.ContinuationPending:
-                                    default:
-                                        allSucceeded = false;
-                                        allDoneNothing = false;
-                                        break;
-                                }
-                                break;
-                            case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
-                                allSucceeded = false;
-                                break;
-                            case PayloadResultStatus.Canceled:
-                            case PayloadResultStatus.Failed:
-                            default:
-                                return payloadResult;
+                            return new PayloadResultCanceled();
+                        }
+                        else
+                        {
+                            var payloadResult = payload.Payload.Run(parameter);
+                            switch(payloadResult.Status)
+                            {
+                                case PayloadResultStatus.Succeeded:
+                                case PayloadResultStatus.ContinuationPendingDoneNothing:
+                                case PayloadResultStatus.ContinuationPending:
+                                    payload.RanAtLeastOnce = true;
+                                    switch(payloadResult.Status)
+                                    {
+                                        case PayloadResultStatus.Succeeded:
+                                            // will not run succeedeed payload in future
+                                            payload.Finished = true;
+                                            // ...
+                                            allDoneNothing = false;
+                                            break;
+                                        case PayloadResultStatus.ContinuationPendingDoneNothing:
+                                            allSucceeded = false;
+                                            break;
+                                        case PayloadResultStatus.ContinuationPending:
+                                        default:
+                                            allSucceeded = false;
+                                            allDoneNothing = false;
+                                            break;
+                                    }
+                                    break;
+                                case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
+                                    allSucceeded = false;
+                                    break;
+                                case PayloadResultStatus.Canceled:
+                                case PayloadResultStatus.Failed:
+                                default:
+                                    return payloadResult;
+                            }
                         }
                     }
 
