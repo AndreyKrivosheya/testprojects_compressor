@@ -21,7 +21,7 @@ namespace compressor.Processor.Payload
             {
                 if(Queue.TryAdd(blockToAdd, Timeout, CancellationTokenSource.Token))
                 {
-                    return new PayloadResultContinuationPending(blockToAdd);
+                    return new PayloadResultContinuationPending();
                 }
                 else
                 {

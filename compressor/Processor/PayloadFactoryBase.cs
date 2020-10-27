@@ -29,11 +29,20 @@ namespace compressor.Processor
         // creates payload tree implementing single run of compress/decompress payload
         protected Common.Payload.Payload CreateProcessSubpayload(QueueToProcess queueToProcess, QueueToWrite queueToWrite, int queueOperationTimeoutMilliseconds)
         {
+            var payloadTrackLastBlockToAddToQueueToWrite = FactoryBasic.TrackLast();
+
             return FactoryBasic.WhenSucceeded(
-                FactoryBasic.Chain(
-                    FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
-                    CreateProcessPayload(),
-                    FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
+                FactoryBasic.WhenSucceeded(
+                    FactoryBasic.Chain(
+                        FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
+                        CreateProcessPayload(),
+                        payloadTrackLastBlockToAddToQueueToWrite,
+                        FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
+                    ),
+                    FactoryBasic.Chain(
+                        FactoryBasic.ReturnValue(() => payloadTrackLastBlockToAddToQueueToWrite.Last),
+                        FactoryBasic.Succeed()
+                    )
                 ),
                 FactoryBasic.Conditional(
                     (BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last,

@@ -124,5 +124,15 @@ namespace compressor.Common.Payload.Basic
         {
             return new PayloadWhenSucceeded(CancellationTokenSource, payload, payloadAfterPayloadFinished);
         }
+
+        public PayloadTrackLast TrackLast()
+        {
+            return new PayloadTrackLast(CancellationTokenSource);
+        }
+
+        public PayloadTrackLast TrackLastIfNotNull()
+        {
+            return new PayloadTrackLastIfNotNull(CancellationTokenSource);
+        }
    }
 }
