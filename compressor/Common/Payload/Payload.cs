@@ -41,23 +41,14 @@ namespace compressor.Common.Payload
         }
         protected IEnumerable<WaitHandle> GetAllWaitHandlesForRepeatAwaiting()
         {
-            var thisAndAllSubpayloads = GetAllSubpayloads();
-            if(thisAndAllSubpayloads.Any())
-            {
-                //var thisAndAllSubpayloadsForDebug = thisAndAllSubpayloads.ToArray();
-                return thisAndAllSubpayloads.SelectMany(x => x.GetAllImmediateWaitHandlesForRepeatAwaiting());
-            }
-            else
-            {
-                return Enumerable.Empty<WaitHandle>();
-            }
+            return GetThisAndAllSubpayloads().SelectMany(x => x.GetAllImmediateWaitHandlesForRepeatAwaiting());
         }
 
         protected virtual IEnumerable<Payload> GetAllImmediateSubpayloads()
         {
             return Enumerable.Empty<Payload>();
         }
-        protected IEnumerable<Payload> GetAllSubpayloads()
+        protected IEnumerable<Payload> GetThisAndAllSubpayloads()
         {
             static IEnumerable<Payload> GetAllSubpayloadsOfAPayload(Payload payload)
             {
