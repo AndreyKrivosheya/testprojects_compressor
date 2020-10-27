@@ -94,6 +94,15 @@ namespace compressor.Common.Payload.Basic
                 );
             }
 
+            var PayloadCurrentParameterAsAwaitablesHolder = PayloadCurrentParameter as AwaitablesHolder;
+            if(PayloadCurrentParameterAsAwaitablesHolder != null)
+            {
+                return Enumerable.Concat(
+                    PayloadCurrentParameterAsAwaitablesHolder.GetAwaitables(),
+                    Payloads.GetAwaitables()
+                );
+            }
+
             return Payloads.GetAwaitables();
         }
 
