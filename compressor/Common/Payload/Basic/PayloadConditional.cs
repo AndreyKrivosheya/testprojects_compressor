@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -21,7 +22,7 @@ namespace compressor.Common.Payload.Basic
         readonly Func<object, bool> Condition;
         readonly Payload PayloadIfTrue;
         readonly Payload PayloadIfFalse;
-        
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
             if(PayloadIfTrue == null && PayloadIfFalse == null)
@@ -54,5 +55,25 @@ namespace compressor.Common.Payload.Basic
                 }
             }
         }
-    }
+         
+        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        {
+            if(PayloadIfTrue != null && PayloadIfFalse != null)
+            {
+                return new [] { PayloadIfTrue, PayloadIfFalse };
+            }
+            else if(PayloadIfTrue != null)
+            {
+                return new [] { PayloadIfTrue };
+            }
+            else if(PayloadIfFalse != null)
+            {
+                return new [] { PayloadIfFalse };
+            }
+            else
+            {
+                return Enumerable.Empty<Common.Payload.Payload>();
+            }
+        }
+   }
 }

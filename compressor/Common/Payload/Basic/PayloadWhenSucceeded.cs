@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -65,6 +66,22 @@ namespace compressor.Common.Payload.Basic
                         return payloadResult;
                     }
                 }
+            }
+        }
+
+        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        {
+            if(PayloadSucceeded && PayloadAfterPayloadSucceededSuceeded)
+            {
+                return Enumerable.Empty<Common.Payload.Payload>();
+            }
+            else if(PayloadSucceeded)
+            {
+                return new [] { PayloadAfterPayloadSucceeded };
+            }
+            else
+            {
+                return new [] { Payload };
             }
         }
     }

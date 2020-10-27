@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace compressor.Common.Payload.Basic
@@ -11,7 +13,7 @@ namespace compressor.Common.Payload.Basic
         }
 
         readonly Payload Payload;
-        
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
             while(!CancellationTokenSource.IsCancellationRequested)
@@ -21,24 +23,37 @@ namespace compressor.Common.Payload.Basic
                 {
                     case PayloadResultStatus.ContinuationPending:
                         // some work was done, but that doesn't completed payload
-                        // ... to the next runcycle
                         Thread.Yield();
                         break;
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
                     case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
                         // spent the cycle checking if anything is ready to work on
-                        Thread.Yield();
+                        // ... be gentle with the CPU, don't waste all onto checking if there's nothing to do
+                        var awaitables = GetAllWaitHandlesForRepeatAwaiting();
+                        if(awaitables.Any())
+                        {
+                            //var awaitablesForDebug = awaitables.ToArray();
+                            WaitHandle.WaitAny(Enumerable.Concat(new [] { CancellationTokenSource.Token.WaitHandle }, awaitables).ToArray(), 100);
+                        }
+                        else
+                        {
+                            Thread.Yield();
+                        }
                         break;
                     case PayloadResultStatus.Succeeded:
                     case PayloadResultStatus.Canceled:
                     case PayloadResultStatus.Failed:
                     default:
-                        //AwaiterWhenNothingDone.Reset();
                         return payloadResult;
                 }
             }
 
             return new PayloadResultCanceled();
+        }
+        
+        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        {
+            return new [] { Payload };
         }
     }
 }

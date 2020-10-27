@@ -34,5 +34,45 @@ namespace compressor.Common.Payload
         {
             return Run(null);
         }
+
+        protected virtual IEnumerable<WaitHandle> GetAllImmediateWaitHandlesForRepeatAwaiting()
+        {
+            return Enumerable.Empty<WaitHandle>();
+        }
+        protected IEnumerable<WaitHandle> GetAllWaitHandlesForRepeatAwaiting()
+        {
+            var thisAndAllSubpayloads = GetAllSubpayloads();
+            if(thisAndAllSubpayloads.Any())
+            {
+                //var thisAndAllSubpayloadsForDebug = thisAndAllSubpayloads.ToArray();
+                return thisAndAllSubpayloads.SelectMany(x => x.GetAllImmediateWaitHandlesForRepeatAwaiting());
+            }
+            else
+            {
+                return Enumerable.Empty<WaitHandle>();
+            }
+        }
+
+        protected virtual IEnumerable<Payload> GetAllImmediateSubpayloads()
+        {
+            return Enumerable.Empty<Payload>();
+        }
+        protected IEnumerable<Payload> GetAllSubpayloads()
+        {
+            static IEnumerable<Payload> GetAllSubpayloadsOfAPayload(Payload payload)
+            {
+                var subpayloads = payload.GetAllImmediateSubpayloads().Where(x => x != null);
+                if(subpayloads.Any())
+                {
+                    return Enumerable.Concat(new [] { payload }, subpayloads.SelectMany(x => GetAllSubpayloadsOfAPayload(x)));
+                }
+                else
+                {
+                    return new [] { payload };
+                }
+            }
+
+            return GetAllSubpayloadsOfAPayload(this);
+        }
     }
 }

@@ -71,5 +71,27 @@ namespace compressor.Common.Payload.Basic
 
             return new PayloadResultContinuationPending();
         }
+
+        protected override IEnumerable<WaitHandle> GetAllImmediateWaitHandlesForRepeatAwaiting()
+        {
+            var PayloadCurrentParameterAsWaitHandle = PayloadCurrentParameter as WaitHandle;
+            if(PayloadCurrentParameterAsWaitHandle != null)
+            {
+                return new [] { PayloadCurrentParameterAsWaitHandle };
+            }
+            
+            var PayloadCurrentParameterAsIAsyncResult = PayloadCurrentParameter as IAsyncResult;
+            if(PayloadCurrentParameterAsIAsyncResult != null)
+            {
+                return new [] { PayloadCurrentParameterAsIAsyncResult.AsyncWaitHandle };
+            }
+
+            return Enumerable.Empty<WaitHandle>();
+        }
+
+        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        {
+            return Payloads;
+        }
     }
 }

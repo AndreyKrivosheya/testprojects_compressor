@@ -34,27 +34,16 @@ namespace compressor.Common.Payload.Basic
         }
 
         readonly List<PayloadWithState> Payloads;
-        
+
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
-            // if no unfinished paylaods
-            if(!payloadsUnfinished.Any())
-            {
-                return new PayloadResultSucceeded();
-            }
-            else
-            {
-                // if all unfinished payloads are either not mandatory or were never run
-                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
-                {
-                    return new PayloadResultSucceeded();
-                }
-                else
+            return Template(
+                whenNothingLeftToRun: () => new PayloadResultSucceeded(),
+                whenAnyLeftToRun:(payloadsUnfinished) => 
                 {
                     var allSucceeded = true;
                     var allDoneNothing = true;
-                    foreach(var payload in Payloads.Where(x => !x.Finished))
+                    foreach(var payload in payloadsUnfinished)
                     {
                         var payloadResult = payload.Payload.Run(parameter);
                         switch(payloadResult.Status)
@@ -117,6 +106,36 @@ namespace compressor.Common.Payload.Basic
                             }
                         }
                     }
+                }
+            );
+        }
+         
+        protected override IEnumerable<Common.Payload.Payload> GetAllImmediateSubpayloads()
+        {
+            return Template(
+                whenNothingLeftToRun: () => Enumerable.Empty<Common.Payload.Payload>(),
+                whenAnyLeftToRun: (payloadsUnfinished) => payloadsUnfinished.Select(x => x.Payload)
+            );
+        }
+
+        T Template<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
+        {
+            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
+            // if no unfinished paylaods
+            if(!payloadsUnfinished.Any())
+            {
+                return whenNothingLeftToRun();
+            }
+            else
+            {
+                // if all unfinished payloads are either not mandatory or were never run
+                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
+                {
+                    return whenNothingLeftToRun();
+                }
+                else
+                {
+                    return whenAnyLeftToRun(payloadsUnfinished);
                 }
             }
         }
