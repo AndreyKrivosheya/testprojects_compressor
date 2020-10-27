@@ -14,30 +14,30 @@ namespace compressor.Common.Payload.Basic
 
         readonly CancellationTokenSource CancellationTokenSource;
 
-        public Common.Payload.Payload Succeed()
+        public PayloadSucceed Succeed()
         {
             return new PayloadSucceed(CancellationTokenSource);
         }
         
-        public Common.Payload.Payload ReturnValue(Func<object, object> valueProvider)
+        public PayloadReturnValue ReturnValue(Func<object, object> valueProvider)
         {
             return new PayloadReturnValue(CancellationTokenSource, valueProvider);
         }
-        public Common.Payload.Payload ReturnValue(Func<object> valueProvider)
+        public PayloadReturnValue ReturnValue(Func<object> valueProvider)
         {
             return new PayloadReturnValue(CancellationTokenSource, valueProvider);
         }
-        public Common.Payload.Payload ReturnValue(object value)
+        public PayloadReturnValue ReturnValue(object value)
         {
             return new PayloadReturnValue(CancellationTokenSource, value);
         }
 
-        public Common.Payload.Payload Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
+        public PayloadConditional Conditional(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
         }
 
-        public Common.Payload.Payload Conditional(Func<int, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
+        public PayloadConditional Conditional(Func<int, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             if(condition == null)
             {
@@ -46,7 +46,7 @@ namespace compressor.Common.Payload.Basic
 
             return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue, payloadIfFalse);
         }
-        public Common.Payload.Payload Conditional<T>(Func<T, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
+        public PayloadConditional Conditional<T>(Func<T, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             if(condition == null)
             {
@@ -56,16 +56,16 @@ namespace compressor.Common.Payload.Basic
             return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue, payloadIfFalse);
         }
 
-        public Common.Payload.Payload Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
+        public PayloadConditional Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
             return new PayloadConditional(CancellationTokenSource, condition, payloadIfTrue, payloadIfFalse);
         }
 
-        public Common.Payload.Payload ConditionalOnceAndForever(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)
+        public PayloadConditionalOnceAndForever ConditionalOnceAndForever(Func<object, bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             return new PayloadConditionalOnceAndForever(CancellationTokenSource, condition, payloadIfTrue);
         }
-        public Common.Payload.Payload ConditionalOnceAndForever<T>(Func<T, bool> condition, Common.Payload.Payload payloadIfTrue)
+        public PayloadConditionalOnceAndForever ConditionalOnceAndForever<T>(Func<T, bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             if(condition == null)
             {
@@ -74,7 +74,7 @@ namespace compressor.Common.Payload.Basic
 
             return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue);
         }
-        public Common.Payload.Payload ConditionalOnceAndForever(Func<int, bool> condition, Common.Payload.Payload payloadIfTrue)
+        public PayloadConditionalOnceAndForever ConditionalOnceAndForever(Func<int, bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             if(condition == null)
             {
@@ -84,44 +84,43 @@ namespace compressor.Common.Payload.Basic
             return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue);
         }
 
-
-        public Common.Payload.Payload ConditionalOnceAndForever(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
+        public PayloadConditionalOnceAndForever ConditionalOnceAndForever(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
         {
             return new PayloadConditionalOnceAndForever(CancellationTokenSource, condition, payloadIfTrue);
         }
 
-        public Common.Payload.Payload Sequence(IEnumerable<(Common.Payload.Payload Payload, bool Mandatory)> payloads)
+        public PayloadSequence Sequence(IEnumerable<(Common.Payload.Payload Payload, bool Mandatory)> payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
         }
-        public Common.Payload.Payload Sequence(IEnumerable<Common.Payload.Payload> payloads)
+        public PayloadSequence Sequence(IEnumerable<Common.Payload.Payload> payloads)
         {
             return Sequence(payloads.Select(x => (x, true)));
         }
-        public Common.Payload.Payload Sequence(params (Common.Payload.Payload Payload, bool Mandatory)[] payloads)
+        public PayloadSequence Sequence(params (Common.Payload.Payload Payload, bool Mandatory)[] payloads)
         {
             return new PayloadSequence(CancellationTokenSource, payloads);
         }
-        public Common.Payload.Payload Sequence(params Common.Payload.Payload[] payloads)
+        public PayloadSequence Sequence(params Common.Payload.Payload[] payloads)
         {
             return Sequence(payloads.Select(x => (x, true)));
         }
 
-        public Common.Payload.Payload Chain(IEnumerable<Common.Payload.Payload> payloads)
+        public PayloadChain Chain(IEnumerable<Common.Payload.Payload> payloads)
         {
             return new PayloadChain(CancellationTokenSource, payloads);
         }
-        public Common.Payload.Payload Chain(params Common.Payload.Payload[] payloads)
+        public PayloadChain Chain(params Common.Payload.Payload[] payloads)
         {
             return new PayloadChain(CancellationTokenSource, payloads);
         }
 
-        public Common.Payload.Payload Repeat(Common.Payload.Payload payload)
+        public PayloadRepeat Repeat(Common.Payload.Payload payload)
         {
             return new PayloadRepeat(CancellationTokenSource, payload);
         }
    
-        public Common.Payload.Payload WhenSucceeded(Common.Payload.Payload payload, Common.Payload.Payload payloadAfterPayloadFinished)
+        public PayloadWhenSucceeded WhenSucceeded(Common.Payload.Payload payload, Common.Payload.Payload payloadAfterPayloadFinished)
         {
             return new PayloadWhenSucceeded(CancellationTokenSource, payload, payloadAfterPayloadFinished);
         }

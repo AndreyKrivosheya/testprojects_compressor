@@ -13,7 +13,7 @@ namespace compressor.Common.Payload.Convert
 
         readonly CancellationTokenSource CancellationTokenSource;
 
-        public Common.Payload.Payload BytesToLong()
+        public PayloadBytesToLong BytesToLong()
         {
             return new PayloadBytesToLong(CancellationTokenSource);
         }

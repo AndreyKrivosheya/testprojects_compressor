@@ -18,27 +18,27 @@ namespace compressor.Processor.Payload
 
         readonly Common.Payload.Basic.Factory FactoryBasic;
 
-        public Common.Payload.Payload QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToQueueToProcess QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueAddToQueueToProcess(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
 
-        public Common.Payload.Payload QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToQueueToWrite QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueAddToQueueToWrite(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
 
-        public Common.Payload.Payload QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueGetOneFrom<BlockToProcess> QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
         
-        public Common.Payload.Payload QueueGetOneFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueGetOneFrom<BlockToWrite> QueueGetOneFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
 
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueGetOneOrMoreFrom<BlockToProcess> QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneOrMoreFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
@@ -50,7 +50,7 @@ namespace compressor.Processor.Payload
             );
         }
 
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueGetOneOrMoreFrom<BlockToWrite> QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return new PayloadQueueGetOneOrMoreFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
@@ -62,22 +62,22 @@ namespace compressor.Processor.Payload
             );
         }
 
-        public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue)
+        public PayloadQueueCompleteAdding<BlockToProcess> QueueCompleteAddingQueueToProcess(QueueToProcess queue)
         {
             return new PayloadQueueCompleteAdding<BlockToProcess>(CancellationTokenSource, queue);
         }
 
-        public Common.Payload.Payload QueueCompleteAddingQueueToWrite(QueueToWrite queue)
+        public PayloadQueueCompleteAdding<BlockToWrite> QueueCompleteAddingQueueToWrite(QueueToWrite queue)
         {
             return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, queue);
         }
 
-        public Common.Payload.Payload ProcessCompress()
+        public PayloadProcessCompress ProcessCompress()
         {
             return new PayloadProcessCompress(CancellationTokenSource);
         }
 
-        public Common.Payload.Payload ProcessDecompress()
+        public PayloadProcessDecompress ProcessDecompress()
         {
             return new PayloadProcessDecompress(CancellationTokenSource);
         }
@@ -87,17 +87,17 @@ namespace compressor.Processor.Payload
             return new PayloadBytesToBlockToProcessBinary(CancellationTokenSource);
         }
 
-        public Common.Payload.Payload BytesToBlockToProcessArchive()
+        public PayloadBytesToBlockToProcessArchive BytesToBlockToProcessArchive()
         {
             return new PayloadBytesToBlockToProcessArchive(CancellationTokenSource);
         }
 
-        public Common.Payload.Payload BlocksToWriteToBytesArchive()
+        public PayloadBlocksToWriteToBytesArchive BlocksToWriteToBytesArchive()
         {
             return new PayloadBlocksToWriteToBytesArchive(CancellationTokenSource);
         }
 
-        public Common.Payload.Payload BlocksToWriteToBytesBinary()
+        public PayloadBlocksToWriteToBytesBinary BlocksToWriteToBytesBinary()
         {
             return new PayloadBlocksToWriteToBytesBinary(CancellationTokenSource);
         }
