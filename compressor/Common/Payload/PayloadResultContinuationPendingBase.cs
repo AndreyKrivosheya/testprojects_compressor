@@ -8,15 +8,6 @@ namespace compressor.Common.Payload
             DoneNothing,
             EvaluatedToEmptyPayload,
         }
-        protected PayloadResultContinuationPendingBase(ContinuationStatus status, object result)
-            : base(ContinuationStatusToResultStatus(status), result)
-        {
-        }
-        protected PayloadResultContinuationPendingBase(ContinuationStatus status)
-            : this(status, null)
-        {
-
-        }
 
         static PayloadResultStatus ContinuationStatusToResultStatus(ContinuationStatus status)
         {
@@ -30,6 +21,16 @@ namespace compressor.Common.Payload
                 default:
                     return PayloadResultStatus.ContinuationPendingDoneNothing;
             }
+        }
+
+        protected PayloadResultContinuationPendingBase(ContinuationStatus status, object result)
+            : base(ContinuationStatusToResultStatus(status), result)
+        {
+        }
+        protected PayloadResultContinuationPendingBase(ContinuationStatus status)
+            : this(status, null)
+        {
+
         }
     }
 }

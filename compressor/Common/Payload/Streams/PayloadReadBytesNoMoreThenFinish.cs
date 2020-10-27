@@ -55,43 +55,5 @@ namespace compressor.Common.Payload.Streams
                 }
             }
         }
-        // protected sealed override PayloadResult RunUnsafe(object parameter)
-        // {
-        //     return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult readingAsyncResult) =>
-        //     {
-        //         if(readingAsyncResult.IsCompleted)
-        //         {
-        //             try
-        //             {
-        //                 var totalRead = Stream.EndRead(readingAsyncResult);
-        //                 if(totalRead != 0)
-        //                 {
-        //                     var data = (byte[])readingAsyncResult.AsyncState;
-        //                     return new PayloadResultContinuationPending(data.SubArray(0, totalRead));
-        //                 }
-        //                 else
-        //                 {
-        //                     // finsihed reading, no more to process
-        //                     OnReadPastStreamEnd();
-        //                     return new PayloadResultSucceeded();
-        //                 }
-        //             }
-        //             catch(Exception e)
-        //             {
-        //                 var eNew = ExceptionProducer(e);
-        //                 if(eNew != null)
-        //                 {
-        //                     throw eNew;
-        //                 }
-        //                 else
-        //                 {
-        //                     throw;
-        //                 }
-        //             }
-        //         }
-
-        //         return new PayloadResultContinuationPendingDoneNothing();
-        //     });
-        // }
     }
 }

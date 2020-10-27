@@ -1,3 +1,0 @@
-namespace compressor.Common.Payload
-{
-}
