@@ -92,6 +92,7 @@ namespace compressor.Processor.Queue
                 return Implementation.Count >= ((percents * Implementation.MaxCapacity) / 100f);
             }
         }
+
         public bool IsHalfFull()
         {
             return IsPercentsFull(50);
@@ -99,6 +100,10 @@ namespace compressor.Processor.Queue
         public bool IsAlmostFull()
         {
             return IsPercentsFull(90);
+        }
+        public bool IsFull()
+        {
+            return IsPercentsFull(99);
         }
     }
 }

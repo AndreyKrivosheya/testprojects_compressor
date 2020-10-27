@@ -96,7 +96,7 @@ namespace compressor.Processor
             // if engaged: get block out of queue-to-process, process (compress/decompress) and add result to queue-to-write
             // when processing completed close queue-to-write for additions
             return FactoryBasic.ConditionalOnceAndForever(
-                () => queueToProcess.IsAlmostFull(),
+                () => queueToProcess.IsFull(),
                 CreateProcessSubpayload(queueToProcess, queueToWrite, TimeoutImmediate)
             );
         }
