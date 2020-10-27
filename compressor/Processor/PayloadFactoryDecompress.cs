@@ -21,10 +21,6 @@ namespace compressor.Processor
             : base(cancellationTokenSource, settings)
         {
         }
-        public PayloadFactoryDecompress(SettingsProvider settings)
-            : base(settings)
-        {
-        }
 
         #region Processor payload factory
 

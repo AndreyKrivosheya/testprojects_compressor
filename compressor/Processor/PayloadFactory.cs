@@ -24,10 +24,6 @@ namespace compressor.Processor
             this.FactoryCommonConvert = new Common.Payload.Convert.Factory(CancellationTokenSource);
             this.FactoryProcessor = new Factory(CancellationTokenSource);
         }
-        public PayloadFactory(SettingsProvider settings)
-            : this(new CancellationTokenSource(), settings)
-        {
-        }
 
         protected readonly CancellationTokenSource CancellationTokenSource;
         protected readonly SettingsProvider Settings;
