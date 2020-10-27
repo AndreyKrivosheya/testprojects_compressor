@@ -6,6 +6,7 @@ namespace compressor.Processor.Queue.Custom
 {
     interface LimitableCollection<T> : IDisposable
     {
+        int MaxCapacity { get; }
         int Count { get; }
 
         bool IsCompleted { get; }
@@ -31,23 +32,29 @@ namespace compressor.Processor.Queue.Custom
                 throw new ArgumentException("Can't limit collection to 0 items", "maxCapacity");
             }
 
-            this.MaxCapacity = maxCapacity;
             if(maxCapacity < 1)
             {
                 Implementation = new LimitableCollection.ImplementationUnlimited<T, TCollection>();
             }
             else
             {
-                Implementation = new LimitableCollection.ImplementationLimited<T, TCollection>(this.MaxCapacity);
+                Implementation = new LimitableCollection.ImplementationLimited<T, TCollection>(maxCapacity);
             }
         }
 
-        public readonly int MaxCapacity;
         readonly LimitableCollection.Implementation<T> Implementation;
 
         public void Dispose()
         {
             Implementation.Dispose();
+        }
+
+        public int MaxCapacity
+        {
+            get
+            {
+                return Implementation.MaxCapacity;
+            }
         }
 
         public int Count

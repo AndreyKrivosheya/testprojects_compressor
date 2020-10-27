@@ -21,7 +21,7 @@ namespace compressor.Processor.Payload
             return parameter.VerifyNotNullConvertAndRunUnsafe(
             (int maxBlocksToGet) =>
             {
-                var blocksFromQueue = new List<TBlock>(maxBlocksToGet < 1 ? Queue.MaxCapacity : maxBlocksToGet);
+                var blocksFromQueue = new List<TBlock>(maxBlocksToGet < 1 ? 1 : maxBlocksToGet);
                 while(blocksFromQueue.Count < blocksFromQueue.Capacity)
                 {
                     TBlock blockFromQueue;

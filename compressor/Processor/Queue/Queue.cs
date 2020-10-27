@@ -14,12 +14,10 @@ namespace compressor.Processor.Queue
                 throw new ArgumentException("Can't limit collection to less than 1 item", "maxCapacity");
             }
 
-            this.MaxCapacity = maxCapacity;
             this.Implementation = new Custom.LimitableCollection<TBlock, ConcurrentQueue<TBlock>>(maxCapacity);
         }
 
         readonly Custom.LimitableCollection<TBlock> Implementation;
-        public readonly int MaxCapacity;
 
         public void Dispose()
         {
@@ -85,8 +83,14 @@ namespace compressor.Processor.Queue
         {
             if(percents < 0 || percents > 100)
                 throw new ArgumentException("percents");
-
-            return Implementation.Count >= ((percents * MaxCapacity) / 100f);
+            if(Implementation.MaxCapacity < 1)
+            {
+                return false;
+            }
+            else
+            {
+                return Implementation.Count >= ((percents * Implementation.MaxCapacity) / 100f);
+            }
         }
         public bool IsHalfFull()
         {

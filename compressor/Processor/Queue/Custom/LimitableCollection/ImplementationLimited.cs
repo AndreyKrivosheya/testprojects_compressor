@@ -9,12 +9,10 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
     {
         public ImplementationLimited(int maxCapacity)
         {
-            this.MaxCapacity = maxCapacity;
+            this.MaxCapacityBackingField = maxCapacity;
             this.ProducersSemaphore = new Semaphore(maxCapacity, maxCapacity);
             this.ProducersCancellationTokenSource = new CancellationTokenSource();
         }
-
-        public readonly int MaxCapacity;
 
         readonly CancellationTokenSource ProducersCancellationTokenSource;
         readonly Semaphore ProducersSemaphore;
@@ -25,6 +23,15 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
             ProducersSemaphore.Close();
 
             base.DisposeCollection();
+        }
+
+        readonly int MaxCapacityBackingField;
+        public override int MaxCapacity
+        {
+            get
+            {
+                return MaxCapacityBackingField;
+            }
         }
 
         protected sealed override bool TryAddToCollection(T item, int millisecondsTimeout, CancellationToken cancellationToken)

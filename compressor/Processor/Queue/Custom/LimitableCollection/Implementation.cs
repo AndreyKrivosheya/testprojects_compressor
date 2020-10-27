@@ -5,6 +5,7 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
 {
     interface Implementation<T> : IDisposable
     {
+        int MaxCapacity { get; }
         int Count { get; }
 
         bool IsCompleted { get; }

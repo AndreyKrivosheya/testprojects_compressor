@@ -8,5 +8,13 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         public ImplementationUnlimited()
         {
         }
+
+        public sealed override int MaxCapacity
+        {
+            get
+            {
+                return -1;
+            }
+        }
     }
 }

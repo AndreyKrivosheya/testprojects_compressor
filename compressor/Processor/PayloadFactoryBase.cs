@@ -40,7 +40,7 @@ namespace compressor.Processor
                     FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
                 ),
                 FactoryBasic.Conditional(
-                    (BlockToWrite lastBlockAddedByThisProcessorPayload) => lastBlockAddedByThisProcessorPayload.Last,
+                    (BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last,
                     FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite),
                     FactoryBasic.Succeed()
                 )

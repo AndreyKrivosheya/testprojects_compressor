@@ -22,6 +22,14 @@ namespace compressor.Processor.Queue.Custom
             BlockingCollection.Dispose();
         }
 
+        public int MaxCapacity
+        {
+            get
+            {
+                return BlockingCollection.BoundedCapacity;
+            }
+        }
+        
         public int Count
         {
             get

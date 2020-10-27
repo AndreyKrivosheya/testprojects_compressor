@@ -16,14 +16,6 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
 
         protected readonly IProducerConsumerCollection<T> ConcurrentCollection;
 
-        public int Count
-        {
-            get
-            {
-                return ConcurrentCollection.Count;
-            }
-        }
-
         // amount of threads currently trying to add to collection
         protected volatile int CurrentAddersCount = 0;
         // mask to indicate that adding to collection is completed
@@ -32,8 +24,8 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         readonly Semaphore ConsumersSemaphore;
         readonly CancellationTokenSource ConsumersCancellationTokenSource;
 
-
         bool IsDisposed = false;
+        
         void ThrowIfDisposed()
         {
             if(IsDisposed)
@@ -49,7 +41,24 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         public void Dispose()
         {
             ThrowIfDisposed();
-            DisposeCollection();
+            try
+            {
+                DisposeCollection();
+            }
+            finally
+            {
+                IsDisposed = true;
+            }
+        }
+
+        public abstract int MaxCapacity { get; }
+        
+        public int Count
+        {
+            get
+            {
+                return ConcurrentCollection.Count;
+            }
         }
 
         public bool IsAddingCompleted
