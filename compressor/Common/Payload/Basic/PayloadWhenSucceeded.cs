@@ -43,7 +43,10 @@ namespace compressor.Common.Payload.Basic
                     }
                     else
                     {
-                        PayloadSucceededResult = payloadResult.Result;
+                        if(payloadResult.Status == PayloadResultStatus.ContinuationPending)
+                        {
+                            PayloadSucceededResult = payloadResult.Result;
+                        }
 
                         return payloadResult;
                     }
