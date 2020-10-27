@@ -18,27 +18,27 @@ namespace compressor.Processor.Queue
             }
         }
 
-        public void NotifyAddedToQueue()
+        public void NotifyProcessedAndAddedToQueue()
         {
-            Awaiter.NotifyAddedToQueue();
+            Awaiter.NotifyProcessedAndAddedToQueueToWrite();
         }
 
-        public bool WaitAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+        public bool WaitAllPreviousBlocksProcessedAndAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return Awaiter.WaitAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken);
+            return Awaiter.WaitAllPreviousBlocksProcessedAddedToQueueToWrite(millisecondsTimeout, cancellationToken);
         }
-        public bool WaitAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
+        public bool WaitAllPreviousBlocksProcessedAndAddedToQueue(CancellationToken cancellationToken)
         {
-            return Awaiter.WaitAllPreviousBlocksAddedToQueue(cancellationToken);
+            return Awaiter.WaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken);
         }
 
-        public bool WaitThisAndAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+        public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
         {
-            return Awaiter.WaitThisAndAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken);
+            return Awaiter.WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(millisecondsTimeout, cancellationToken);
         }
-        public bool WaitThisAndAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
+        public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueue(CancellationToken cancellationToken)
         {
-            return Awaiter.WaitThisAndAllPreviousBlocksAddedToQueue(cancellationToken);
+            return Awaiter.WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken);
         }
     }
 }

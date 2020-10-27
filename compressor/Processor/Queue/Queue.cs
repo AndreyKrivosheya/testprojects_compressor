@@ -59,23 +59,9 @@ namespace compressor.Processor.Queue
             }
         }
         
-        public virtual bool CompleteAdding(int millisecondsTimeout, CancellationToken cancellationToken)
+        public void CompleteAdding()
         {
             Implementation.CompleteAdding();
-            return true;
-        }
-        public virtual bool CompleteAdding(int millisecondsTimeout)
-        {
-            Implementation.CompleteAdding();
-            return true;
-        }
-        public bool CompleteAdding(CancellationToken cancellationToken)
-        {
-            return CompleteAdding(0, cancellationToken);
-        }
-        public bool CompleteAdding()
-        {
-            return CompleteAdding(0);
         }
 
         public bool TryTake(out TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)

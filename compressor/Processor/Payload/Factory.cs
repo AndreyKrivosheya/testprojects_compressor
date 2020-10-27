@@ -62,14 +62,14 @@ namespace compressor.Processor.Payload
             );
         }
 
-        public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue)
         {
-            return new PayloadQueueCompleteAdding<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueCompleteAdding<BlockToProcess>(CancellationTokenSource, queue);
         }
 
-        public Common.Payload.Payload QueueCompleteAddingQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public Common.Payload.Payload QueueCompleteAddingQueueToWrite(QueueToWrite queue)
         {
-            return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, queue);
         }
 
         public Common.Payload.Payload ProcessCompress()

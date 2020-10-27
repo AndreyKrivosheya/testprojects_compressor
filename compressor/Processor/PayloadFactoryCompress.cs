@@ -41,11 +41,11 @@ namespace compressor.Processor
         #region ReaderProcessorWriter Reader subpayload factory
 
         // creates immediate block read bytes from input payload
-        protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream)
+        protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream, int streamOperationTimeoutMilliseconds)
         {
             return FactoryBasic.Chain(
                 FactoryBasic.ReturnValue(Settings.BlockSize),
-                FactoryCommonStreams.ReadBytesNoMoreThen(inputStream,
+                FactoryCommonStreams.ReadBytesNoMoreThen(inputStream, streamOperationTimeoutMilliseconds,
                     exceptionProducer: (e) => new ArgumentNullException("Failed to read block", e))
             );
         }

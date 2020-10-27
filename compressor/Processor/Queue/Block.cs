@@ -10,46 +10,45 @@ namespace compressor.Processor.Queue
             public AwaiterForAddedToQueue(AwaiterForAddedToQueue previous)
             {
                 this.Previous = previous;
+                if(this.Previous != null)
+                {
+                    this.Previous.Last = false;
+                }
             }
             public AwaiterForAddedToQueue()
                 : this(null)
             {
             }
 
-            protected AwaiterForAddedToQueue Previous { get; private set; }
+            AwaiterForAddedToQueue Previous = null;
 
-            public bool Last { get; private set; } = false;
+            public bool Last { get; private set; } = true;
 
-            public void NotifyLast()
-            {
-                Last = true;
-            }
-
-            readonly object BlockAddedToQueueLazyLock = new object();
-            Lazy<ManualResetEvent> BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => new ManualResetEvent(false));
+            readonly object BlockAddedToQueueToWriteLazyLock = new object();
+            Lazy<ManualResetEvent> BlockAddedToQueueToWriteLazy = new Lazy<ManualResetEvent>(() => new ManualResetEvent(false));
             
-            public void NotifyAddedToQueue()
+            public void NotifyProcessedAndAddedToQueueToWrite()
             {
-                lock(BlockAddedToQueueLazyLock)
+                lock(BlockAddedToQueueToWriteLazyLock)
                 {
-                    if(BlockAddedToQueueLazy.IsValueCreated)
+                    if(BlockAddedToQueueToWriteLazy.IsValueCreated)
                     {
-                        if(BlockAddedToQueueLazy.Value != null)
+                        if(BlockAddedToQueueToWriteLazy.Value != null)
                         {
-                            BlockAddedToQueueLazy.Value.Set();
+                            BlockAddedToQueueToWriteLazy.Value.Set();
                         }
                     }
                     Previous = null;
-                    BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
+                    BlockAddedToQueueToWriteLazy = new Lazy<ManualResetEvent>(() => null);
                 }
             }
 
-            public bool WaitAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+            public bool WaitAllPreviousBlocksProcessedAddedToQueueToWrite(int millisecondsTimeout, CancellationToken cancellationToken)
             {
                 var previous = Previous;
                 if(null != previous)
                 {
-                    if(!previous.WaitThisAndAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken))
+                    if(!previous.WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(millisecondsTimeout, cancellationToken))
                     {
                         return false;
                     }
@@ -65,23 +64,23 @@ namespace compressor.Processor.Queue
                     return true;
                 }
             }
-            public bool WaitAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
+            public bool WaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken)
             {
-                return WaitAllPreviousBlocksAddedToQueue(0, cancellationToken);
+                return WaitAllPreviousBlocksProcessedAddedToQueueToWrite(0, cancellationToken);
             }
 
-            public bool WaitThisAndAllPreviousBlocksAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+            public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(int millisecondsTimeout, CancellationToken cancellationToken)
             {
                 // wait all previous blocks were added to queue
-                if(!WaitAllPreviousBlocksAddedToQueue(millisecondsTimeout, cancellationToken))
+                if(!WaitAllPreviousBlocksProcessedAddedToQueueToWrite(millisecondsTimeout, cancellationToken))
                 {
                     return false;
                 }
                 // wait this block to be added to queue
                 WaitHandle waitableThisBlockAddedToQueue;
-                lock(BlockAddedToQueueLazyLock)
+                lock(BlockAddedToQueueToWriteLazyLock)
                 {
-                    waitableThisBlockAddedToQueue = BlockAddedToQueueLazy.Value;
+                    waitableThisBlockAddedToQueue = BlockAddedToQueueToWriteLazy.Value;
                 }
                 if(waitableThisBlockAddedToQueue != null)
                 {
@@ -105,9 +104,9 @@ namespace compressor.Processor.Queue
                         if(!waitingEndedDueToWaitableDisposed)
                         {
                             // reset waitable generator, so that future waits will wait nothing
-                            lock(BlockAddedToQueueLazyLock)
+                            lock(BlockAddedToQueueToWriteLazyLock)
                             {
-                                BlockAddedToQueueLazy = new Lazy<ManualResetEvent>(() => null);
+                                BlockAddedToQueueToWriteLazy = new Lazy<ManualResetEvent>(() => null);
                             }
                             // close waitable
                             try
@@ -133,9 +132,9 @@ namespace compressor.Processor.Queue
                     return true;
                 }
             }
-            public bool WaitThisAndAllPreviousBlocksAddedToQueue(CancellationToken cancellationToken)
+            public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken)
             {
-                return WaitThisAndAllPreviousBlocksAddedToQueue(0, cancellationToken);
+                return WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(0, cancellationToken);
             }
         };
 

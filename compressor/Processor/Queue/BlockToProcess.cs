@@ -9,10 +9,5 @@ namespace compressor.Processor.Queue
             : base(previousBlock != null ? new AwaiterForAddedToQueue(previousBlock.Awaiter) : new AwaiterForAddedToQueue(), originalLength, data)
         {
         }
-
-        public void NotifyLast()
-        {
-            Awaiter.NotifyLast();
-        }
     }
 }

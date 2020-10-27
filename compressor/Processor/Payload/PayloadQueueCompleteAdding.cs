@@ -15,21 +15,15 @@ namespace compressor.Processor.Payload
     class PayloadQueueCompleteAdding<TBlock>: PayloadQueue<TBlock>
         where TBlock: Block
     {
-        public PayloadQueueCompleteAdding(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, queue, queueOperationTimeoutMilliseconds)
+        public PayloadQueueCompleteAdding(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue)
+            : base(cancellationTokenSource, queue, System.Threading.Timeout.Infinite)
         {
         }
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            if(Queue.CompleteAdding(Timeout, CancellationTokenSource.Token))
-            {
-                return new PayloadResultSucceeded();
-            }
-            else
-            {
-                return new PayloadResultContinuationPendingDoneNothing();
-            }
+            Queue.CompleteAdding();
+            return new PayloadResultSucceeded();
         }
     }
 }

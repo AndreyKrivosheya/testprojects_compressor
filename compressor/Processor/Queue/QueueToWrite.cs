@@ -15,7 +15,7 @@ namespace compressor.Processor.Queue
         {
             if(base.TryAdd(item, millisecondsTimeout, cancellationToken))
             {
-                item.NotifyAddedToQueue();
+                item.NotifyProcessedAndAddedToQueue();
                 return true;
             }
             else
@@ -27,7 +27,7 @@ namespace compressor.Processor.Queue
         {
             if(base.TryAdd(item, millisecondsTimeout))
             {
-                item.NotifyAddedToQueue();
+                item.NotifyProcessedAndAddedToQueue();
                 return true;
             }
             else

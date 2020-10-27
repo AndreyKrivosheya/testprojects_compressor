@@ -10,43 +10,51 @@ namespace compressor.Common.Payload.Basic
             : base(cancellationTokenSource)
         {
             this.Payload = payload;
-            this.PayloadAfterPayloadFinished = payloadAfterPayloadFinished;
+            this.PayloadAfterPayloadSucceeded = payloadAfterPayloadFinished;
         }
 
         readonly Payload Payload;
-        bool PayloadFinished = false;
-        object PayloadFinishedResult = null;
-        readonly Payload PayloadAfterPayloadFinished;
-        bool PayloadAfterPayloadFinishedFinsihed = false;
+        bool PayloadSucceeded = false;
+        object PayloadSucceededResult = null;
+        readonly Payload PayloadAfterPayloadSucceeded;
+        bool PayloadAfterPayloadSucceededSuceeded = false;
+        object PayloadAfterPayloadSucceededResult = null;
         
         protected override PayloadResult RunUnsafe(object parameter)
         {
-            if(PayloadFinished && PayloadAfterPayloadFinishedFinsihed)
+            if(PayloadSucceeded && PayloadAfterPayloadSucceededSuceeded)
             {
-                return new PayloadResultSucceeded();
+                return new PayloadResultSucceeded(PayloadAfterPayloadSucceededResult);
             }
             else
             {
-                if(!PayloadFinished)
+                if(!PayloadSucceeded)
                 {
                     var payloadResult = Payload.Run(parameter);
                     if(payloadResult.Status == PayloadResultStatus.Succeeded)
                     {
-                        PayloadFinished = true;
-                        PayloadFinishedResult = payloadResult.Result;
+                        PayloadSucceeded = true;
+                        if(payloadResult.Result != null)
+                        {
+                            PayloadSucceededResult = payloadResult.Result;
+                        }
+
                         return new PayloadResultContinuationPending(payloadResult.Result);
                     }
                     else
                     {
+                        PayloadSucceededResult = payloadResult.Result;
+
                         return payloadResult;
                     }
                 }
                 else
                 {
-                    var payloadResult = PayloadAfterPayloadFinished.Run(PayloadFinishedResult);
+                    var payloadResult = PayloadAfterPayloadSucceeded.Run(PayloadSucceededResult);
                     if(payloadResult.Status == PayloadResultStatus.Succeeded)
                     {
-                        PayloadAfterPayloadFinishedFinsihed = true;
+                        PayloadAfterPayloadSucceededSuceeded = true;
+                        PayloadAfterPayloadSucceededResult = payloadResult.Result;
                         return new PayloadResultContinuationPending(payloadResult.Result);
                     }
                     else

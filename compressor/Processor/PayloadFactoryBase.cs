@@ -14,6 +14,8 @@ namespace compressor.Processor
 {
     abstract class PayloadFactoryBase : PayloadFactory
     {
+        const int TimeoutImmediate = 0;
+
         public PayloadFactoryBase(CancellationTokenSource cancellationTokenSource, SettingsProvider settings)
             : base(cancellationTokenSource, settings)
         {
@@ -38,8 +40,8 @@ namespace compressor.Processor
                     FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
                 ),
                 FactoryBasic.Conditional(
-                    (parameter) => object.ReferenceEquals(parameter, PayloadQueueCompleteAdding.LastObjectAdded),
-                    FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds),
+                    (BlockToWrite lastBlockAddedByThisProcessorPayload) => lastBlockAddedByThisProcessorPayload.Last,
+                    FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite),
                     FactoryBasic.Succeed()
                 )
             );
@@ -59,7 +61,7 @@ namespace compressor.Processor
         #region ReaderProcessorWriter Reader subpayload factory
 
         // creates immediate block read bytes from input payload
-        protected abstract Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream);
+        protected abstract Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream, int streamOperationTimeoutMilliseconds);
 
         // creates immediate bytes read to block for queue-to-process convertion payload
         protected abstract Common.Payload.Payload CreateBytesToBlockToProcessPayload();
@@ -73,13 +75,14 @@ namespace compressor.Processor
                 FactoryBasic.Chain(
                     //  read block bytes and convert to block for queue-to-process
                     FactoryBasic.Chain(
-                        CreateReadBlockBytesPayload(inputStream),
+                        CreateReadBlockBytesPayload(inputStream, TimeoutImmediate),
                         CreateBytesToBlockToProcessPayload()
                     ),
                     // add block read to queue-to-process
-                    FactoryProcessor.QueueAddToQueueToProcess(queueToProcess, 0)
+                    FactoryProcessor.QueueAddToQueueToProcess(queueToProcess, TimeoutImmediate)
                 ),
-                FactoryProcessor.QueueCompleteAddingQueueToProcess(queueToProcess, 0)
+                // complete adding
+                FactoryProcessor.QueueCompleteAddingQueueToProcess(queueToProcess)
             );
         }
        
@@ -94,7 +97,7 @@ namespace compressor.Processor
             // when processing completed close queue-to-write for additions
             return FactoryBasic.ConditionalOnceAndForever(
                 () => queueToProcess.IsAlmostFull(),
-                CreateProcessSubpayload(queueToProcess, queueToWrite, 0)
+                CreateProcessSubpayload(queueToProcess, queueToWrite, TimeoutImmediate)
             );
         }
 
@@ -113,11 +116,11 @@ namespace compressor.Processor
             return FactoryBasic.WhenSucceeded(
                 FactoryBasic.Chain(
                     // get blocks from queue-to-write
-                    FactoryProcessor.QueueGetOneOrMoreFromQueueToWrite(queueToWrite, 0, Settings.MaxBlocksToWriteAtOnce),
+                    FactoryProcessor.QueueGetOneOrMoreFromQueueToWrite(queueToWrite, TimeoutImmediate, Settings.MaxBlocksToWriteAtOnce),
                     // convert blocks to bytes
                     CreateBlocksToWriteToBytesPayload(),
                     // write bytes
-                    FactoryCommonStreams.WriteBytes(outputStream,
+                    FactoryCommonStreams.WriteBytes(outputStream, TimeoutImmediate,
                         exceptionProducer: (e) => new ApplicationException("Failed to write block", e))
                 ),
                 FactoryBasic.Chain(
@@ -134,8 +137,8 @@ namespace compressor.Processor
         {
             return FactoryBasic.Repeat(FactoryBasic.Sequence(
                 (CreateReadProcessWriteSubpayloadRead(inputStream, queueToProcess), true),
-                (CreateReadProcessWriteSubpayloadProcess(queueToProcess, queueToWrite), false),
-                (CreateReadProcessWriteSubpayloadWrite(queueToWrite, outputStream), true)
+                (CreateReadProcessWriteSubpayloadWrite(queueToWrite, outputStream), true),
+                (CreateReadProcessWriteSubpayloadProcess(queueToProcess, queueToWrite), false)
             ));
         }
 

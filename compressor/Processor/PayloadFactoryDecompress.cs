@@ -42,22 +42,18 @@ namespace compressor.Processor
         #region ReaderProcessorWriter Reader subpayload factory
 
         // creates immediate block read bytes from input payload
-        protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream)
+        protected sealed override Common.Payload.Payload CreateReadBlockBytesPayload(Stream inputStream, int streamOperationTimeoutMilliseconds)
         {
             return FactoryBasic.Chain(
                 // read block length
-                FactoryBasic.Chain(
-                    // read block length bytes
-                    FactoryBasic.Chain(
-                        FactoryBasic.ReturnValue(sizeof(long)),
-                        FactoryCommonStreams.ReadBytesExactly(inputStream,
-                            exceptionProducer: (e) => new ApplicationException("Failed to read block length"))
-                    ),
-                    // convert block length bytes to long
-                    FactoryCommonConvert.BytesToLong()
-                ),
+                // ... read block length bytes
+                FactoryBasic.ReturnValue(sizeof(long)),
+                FactoryCommonStreams.ReadBytesExactly(inputStream, streamOperationTimeoutMilliseconds,
+                    exceptionProducer: (e) => new ApplicationException("Failed to read block length")),
+                // ... convert block length bytes to long
+                FactoryCommonConvert.BytesToLong(),
                 // read block
-                FactoryCommonStreams.ReadBytesExactly(inputStream,
+                FactoryCommonStreams.ReadBytesExactly(inputStream, streamOperationTimeoutMilliseconds,
                     exceptionProducer: (e) => new ApplicationException("Failed to read block"),
                     onReadPastStreamEnd: () => { throw new ApplicationException("Unexpected end of stream: read block length, but not the block"); }
                 )

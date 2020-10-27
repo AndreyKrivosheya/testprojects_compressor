@@ -4,7 +4,7 @@ namespace compressor.Common.Payload
 {
     static class PayloadParameterExtensions
     {
-        public static PayloadResult ConvertAndRunUnsafe<T>(this object parameter, Func<T, PayloadResult> runner)
+        public static U ConvertAndTransform<T, U>(this object parameter, Func<T, U> transform)
         {
             T parameterCasted;
             try
@@ -16,19 +16,28 @@ namespace compressor.Common.Payload
                 throw new ArgumentException(string.Format("Value of 'parameter' ({0}) is not '{1}'", parameter, typeof(T)), "parameter", e);
             }
 
-            return runner(parameterCasted);
+            return transform(parameterCasted);
         }
-        public static PayloadResult VerifyNotNullConvertAndRunUnsafe<T>(this object parameter, Func<T, PayloadResult> runner)
+        public static PayloadResult ConvertAndRunUnsafe<T>(this object parameter, Func<T, PayloadResult> runner)
+        {
+            return parameter.ConvertAndTransform(runner);
+        }
+
+        public static U VerifyNotNullConvertAndTransform<T, U>(this object parameter, Func<T, U> transform)
         {
             if(parameter == null)
             {
                 throw new ArgumentNullException("parameter");
             }
 
-            return parameter.ConvertAndRunUnsafe(runner);
+            return parameter.ConvertAndTransform(transform);
+        }
+        public static PayloadResult VerifyNotNullConvertAndRunUnsafe<T>(this object parameter, Func<T, PayloadResult> runner)
+        {
+            return parameter.VerifyNotNullConvertAndTransform(runner);
         }
 
-        public static PayloadResult ConvertAndRunUnsafe(this object parameter, Func<int, PayloadResult> runner)
+        public static U ConvertAndTransform<U>(this object parameter, Func<int, U> transform)
         {
             int parameterCasted;
             try
@@ -47,16 +56,25 @@ namespace compressor.Common.Payload
                 }
             }
 
-            return runner(parameterCasted);
+            return transform(parameterCasted);
         }
-        public static PayloadResult VerifyNotNullConvertAndRunUnsafe(this object parameter, Func<int, PayloadResult> runner)
+        public static PayloadResult ConvertAndRunUnsafe(this object parameter, Func<int, PayloadResult> runner)
+        {
+            return parameter.ConvertAndTransform(runner);
+        }
+
+        public static U VerifyNotNullConvertAndTransform<U>(this object parameter, Func<int, U> transform)
         {
             if(parameter == null)
             {
                 throw new ArgumentNullException("parameter");
             }
 
-            return parameter.ConvertAndRunUnsafe(runner);
+            return parameter.ConvertAndTransform(transform);
+        }
+        public static PayloadResult VerifyNotNullConvertAndRunUnsafe(this object parameter, Func<int, PayloadResult> runner)
+        {
+            return parameter.VerifyNotNullConvertAndTransform(runner);
         }
     }
 }

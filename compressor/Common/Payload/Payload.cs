@@ -21,6 +21,10 @@ namespace compressor.Common.Payload
             {
                 return RunUnsafe(parameter);
             }
+            catch(OperationCanceledException e)
+            {
+                return new PayloadResultCanceled(e);
+            }
             catch(Exception e)
             {
                 return new PayloadResultFailed(e);

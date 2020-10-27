@@ -16,20 +16,9 @@ namespace compressor.Processor.Payload
 
         protected override PayloadResult RunUnsafe(BlockToWrite blockToAdd)
         {
-            if(blockToAdd.WaitAllPreviousBlocksAddedToQueue(Timeout, CancellationTokenSource.Token))
+            if(blockToAdd.WaitAllPreviousBlocksProcessedAndAddedToQueue(Timeout, CancellationTokenSource.Token))
             {
-                var addResult = base.RunUnsafe(blockToAdd);
-                // if block was actually added
-                if(addResult.Status == PayloadResultStatus.ContinuationPending)
-                {
-                    // if last block was added
-                    if(blockToAdd.Last)
-                    {
-                        return new PayloadResultSucceeded(PayloadQueueCompleteAdding.LastObjectAdded);
-                    }
-                }
-
-                return addResult;
+                return base.RunUnsafe(blockToAdd);
             }
             else
             {

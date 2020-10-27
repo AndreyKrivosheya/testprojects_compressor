@@ -34,16 +34,16 @@ namespace compressor.Common.Payload.Streams
             return new PayloadReadBytesNoMoreThenStart(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesNoMoreThenFinish(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
+        public Common.Payload.Payload ReadBytesNoMoreThenFinish(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
-            return new PayloadReadBytesNoMoreThenFinish(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
+            return new PayloadReadBytesNoMoreThenFinish(CancellationTokenSource, stream, streamOperationTimeoutMilliseconds, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesNoMoreThen(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
+        public Common.Payload.Payload ReadBytesNoMoreThen(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return FactoryBasic.Chain(
                 ReadBytesNoMoreThenStart(stream, exceptionProducer, onReadPastStreamEnd),
-                ReadBytesNoMoreThenFinish(stream, exceptionProducer, onReadPastStreamEnd)
+                ReadBytesNoMoreThenFinish(stream, streamOperationTimeoutMilliseconds, exceptionProducer, onReadPastStreamEnd)
             );
         }
 
@@ -52,16 +52,16 @@ namespace compressor.Common.Payload.Streams
             return new PayloadReadBytesExactlyStart(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
         }
         
-        public Common.Payload.Payload ReadBytesExactlyFinish(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
+        public Common.Payload.Payload ReadBytesExactlyFinish(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
-            return new PayloadReadBytesExactlyFinish(CancellationTokenSource, stream, exceptionProducer, onReadPastStreamEnd);
+            return new PayloadReadBytesExactlyFinish(CancellationTokenSource, stream, streamOperationTimeoutMilliseconds, exceptionProducer, onReadPastStreamEnd);
         }
 
-        public Common.Payload.Payload ReadBytesExactly(Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
+        public Common.Payload.Payload ReadBytesExactly(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
         {
             return FactoryBasic.Chain(
                 ReadBytesExactlyStart(stream, exceptionProducer, onReadPastStreamEnd),
-                ReadBytesExactlyFinish(stream, exceptionProducer, onReadPastStreamEnd)
+                ReadBytesExactlyFinish(stream, streamOperationTimeoutMilliseconds, exceptionProducer, onReadPastStreamEnd)
             );
         }
         
@@ -69,16 +69,16 @@ namespace compressor.Common.Payload.Streams
         {
             return new PayloadWriteBytesStart(CancellationTokenSource, stream, exceptionProducer);
         }
-        public Common.Payload.Payload WriteBytesFinsh(Stream stream, Func<Exception, Exception> exceptionProducer)
+        public Common.Payload.Payload WriteBytesFinsh(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer)
         {
-            return new PayloadWriteBytesFinish(CancellationTokenSource, stream, exceptionProducer);
+            return new PayloadWriteBytesFinish(CancellationTokenSource, stream, streamOperationTimeoutMilliseconds, exceptionProducer);
         }
 
-        public Common.Payload.Payload WriteBytes(Stream stream, Func<Exception, Exception> exceptionProducer)
+        public Common.Payload.Payload WriteBytes(Stream stream, int streamOperationTimeoutMilliseconds, Func<Exception, Exception> exceptionProducer)
         {
             return FactoryBasic.Chain(
                 WriteBytesStart(stream, exceptionProducer),
-                WriteBytesFinsh(stream, exceptionProducer)
+                WriteBytesFinsh(stream, streamOperationTimeoutMilliseconds, exceptionProducer)
             );
         }
     }

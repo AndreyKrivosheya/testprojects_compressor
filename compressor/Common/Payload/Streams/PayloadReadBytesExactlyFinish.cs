@@ -4,10 +4,10 @@ using System.Threading;
 
 namespace compressor.Common.Payload.Streams
 {
-    class PayloadReadBytesExactlyFinish: Payload
+    class PayloadReadBytesExactlyFinish: PayloadReadBytesFinish
     {
-        public PayloadReadBytesExactlyFinish(CancellationTokenSource cancellationTokenSource, Stream stream, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
-            : base(cancellationTokenSource, stream)
+        public PayloadReadBytesExactlyFinish(CancellationTokenSource cancellationTokenSource, Stream stream, int streamOperationTimeoutMilleseconds, Func<Exception, Exception> exceptionProducer = null, Action onReadPastStreamEnd = null)
+            : base(cancellationTokenSource, stream, streamOperationTimeoutMilleseconds)
         {
             this.OnReadPastStreamEnd = onReadPastStreamEnd;
             if(this.OnReadPastStreamEnd == null)
@@ -22,53 +22,91 @@ namespace compressor.Common.Payload.Streams
             }
         }
 
+
         readonly Action OnReadPastStreamEnd;
         readonly Func<Exception, Exception> ExceptionProducer;
 
-        protected sealed override PayloadResult RunUnsafe(object parameter)
+        protected sealed override PayloadResult RunUnsafe(IAsyncResult completedReadingAsyncResult)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult readingAsyncResult) =>
+            try
             {
-                if(readingAsyncResult.IsCompleted)
+                var totalRead = Stream.EndRead(completedReadingAsyncResult);
+                if(totalRead != 0)
                 {
-                    try
+                    var data = (byte[])completedReadingAsyncResult.AsyncState;
+                    if(totalRead != data.Length)
                     {
-                        var totalRead = Stream.EndRead(readingAsyncResult);
-                        if(totalRead != 0)
-                        {
-                            var data = (byte[])readingAsyncResult.AsyncState;
-                            if(totalRead != data.Length)
-                            {
-                                throw new ApplicationException(string.Format("Read ({0}) less then expected ({1})", totalRead, data.Length));
-                            }
-                            else
-                            {
-                                return new PayloadResultContinuationPending(data);
-                            }
-                        }
-                        else
-                        {
-                            // finsihed reading, no more to process
-                            OnReadPastStreamEnd();
-                            return new PayloadResultSucceeded();
-                        }
+                        throw new ApplicationException(string.Format("Read ({0}) less then expected ({1})", totalRead, data.Length));
                     }
-                    catch(Exception e)
+                    else
                     {
-                        var eNew = ExceptionProducer(e);
-                        if(eNew != null)
-                        {
-                            throw eNew;
-                        }
-                        else
-                        {
-                            throw;
-                        }
+                        return new PayloadResultContinuationPending(data);
                     }
                 }
-
-                return new PayloadResultContinuationPendingDoneNothing();
-            });
+                else
+                {
+                    // finsihed reading, no more to process
+                    OnReadPastStreamEnd();
+                    return new PayloadResultSucceeded();
+                }
+            }
+            catch(Exception e)
+            {
+                var eNew = ExceptionProducer(e);
+                if(eNew != null)
+                {
+                    throw eNew;
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
+        // protected sealed override PayloadResult RunUnsafe(object parameter)
+        // {
+        //     return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult readingAsyncResult) =>
+        //     {
+        //         if(readingAsyncResult.IsCompleted)
+        //         {
+        //             try
+        //             {
+        //                 var totalRead = Stream.EndRead(readingAsyncResult);
+        //                 if(totalRead != 0)
+        //                 {
+        //                     var data = (byte[])readingAsyncResult.AsyncState;
+        //                     if(totalRead != data.Length)
+        //                     {
+        //                         throw new ApplicationException(string.Format("Read ({0}) less then expected ({1})", totalRead, data.Length));
+        //                     }
+        //                     else
+        //                     {
+        //                         return new PayloadResultContinuationPending(data);
+        //                     }
+        //                 }
+        //                 else
+        //                 {
+        //                     // finsihed reading, no more to process
+        //                     OnReadPastStreamEnd();
+        //                     return new PayloadResultSucceeded();
+        //                 }
+        //             }
+        //             catch(Exception e)
+        //             {
+        //                 var eNew = ExceptionProducer(e);
+        //                 if(eNew != null)
+        //                 {
+        //                     throw eNew;
+        //                 }
+        //                 else
+        //                 {
+        //                     throw;
+        //                 }
+        //             }
+        //         }
+
+        //         return new PayloadResultContinuationPendingDoneNothing();
+        //     });
+        // }
     }
 }
