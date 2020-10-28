@@ -3,18 +3,18 @@ using System.Threading;
 
 namespace compressor.Common
 {
-    abstract class Processor
+    abstract class ProcessorWithResult<T>
     {
-        public Processor()
+        public ProcessorWithResult()
         {
         }
 
-        protected abstract void RunOnThread();
+        protected abstract T RunOnThread();
 
-        AsyncResultNoResult PendingAsyncResult;
+        AsyncResult<T> PendingAsyncResult;
         public IAsyncResult BeginRun(AsyncCallback asyncCallback = null, object state = null)
         {
-            var asyncResultNew = new AsyncResultNoResult(asyncCallback, state);
+            var asyncResultNew = new AsyncResult<T>(asyncCallback, state);
             if(Interlocked.CompareExchange(ref PendingAsyncResult, asyncResultNew, null) != null)
             {
                 throw new InvalidOperationException("Only one asynchronius run request is allowed");
@@ -22,36 +22,33 @@ namespace compressor.Common
             else
             {
                 (new Thread((object asyncResult) => {
-                    var asyncResultTyped = (AsyncResultNoResult)asyncResult;
+                    var asyncResultTyped = (AsyncResult<T>)asyncResult;
                     try
                     {
-                        RunOnThread();
-                        asyncResultTyped.SetAsCompleted(false);
+                        var result = RunOnThread();
+                        asyncResultTyped.SetAsCompleted(result, false);
                     }
                     catch(Exception e)
                     {
                         asyncResultTyped.SetAsCompletedFailed(e, false);
                     }
                 }) { IsBackground = true }).Start(PendingAsyncResult);
-                // ThreadPool.QueueUserWorkItem((asyncResult) => {
-                //     var asyncResultTyped = (AsyncResultNoResult)asyncResult;
-                //     if(asyncResultTyped != null)
+                // ThreadPool.QueueUserWorkItem((object asyncResult) => {
+                //     var asyncResultTyped = (AsyncResult<T>)asyncResult;
+                //     try
                 //     {
-                //         try
-                //         {
-                //             RunOnThread();
-                //             asyncResultTyped.SetAsCompleted(false);
-                //         }
-                //         catch(Exception e)
-                //         {
-                //             asyncResultTyped.SetAsCompletedFailed(e, false);
-                //         }
+                //         var result = RunOnThread();
+                //         asyncResultTyped.SetAsCompleted(result, false);
+                //     }
+                //     catch(Exception e)
+                //     {
+                //         asyncResultTyped.SetAsCompletedFailed(e, false);
                 //     }
                 // }, PendingAsyncResult);
                 return PendingAsyncResult;
             }
         }
-        public void EndRun(IAsyncResult asyncResult)
+        public T EndRun(IAsyncResult asyncResult)
         {
             if(asyncResult == null)
             {
@@ -73,7 +70,7 @@ namespace compressor.Common
                 {
                     try
                     {
-                        PendingAsyncResult.EndInvoke();
+                        return PendingAsyncResult.EndInvoke();
                     }
                     finally
                     {
@@ -83,9 +80,9 @@ namespace compressor.Common
             }
         }
 
-        public void Run()
+        public T Run()
         {
-            var asyncResultNew = new AsyncResultNoResult(null, null);
+            var asyncResultNew = new AsyncResult<T>(null, null);
             if(Interlocked.CompareExchange(ref PendingAsyncResult, asyncResultNew, null) != null)
             {
                 throw new InvalidOperationException("Running synchroniously and asynchroniously simulteneously is not allowed");
@@ -94,7 +91,7 @@ namespace compressor.Common
             {
                 try
                 {
-                    RunOnThread();
+                    return RunOnThread();
                 }
                 finally
                 {

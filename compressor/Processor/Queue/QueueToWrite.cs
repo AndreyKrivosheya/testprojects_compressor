@@ -11,29 +11,26 @@ namespace compressor.Processor.Queue
         {
         }
 
-        public override bool TryAdd(BlockToWrite item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public override IAsyncResult BeginAdd(BlockToWrite block, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            if(base.TryAdd(item, millisecondsTimeout, cancellationToken))
-            {
-                item.NotifyProcessedAndAddedToQueue();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return base.BeginAdd(block, cancellationToken, (ar) => {
+                block.NotifyProcessedAndAddedToQueue();
+                if(asyncCallback != null)
+                {
+                    asyncCallback(ar);
+                }
+            }, state);
         }
-        public override bool TryAdd(BlockToWrite item, int millisecondsTimeout)
+
+        public override IAsyncResult BeginAdd(BlockToWrite block, AsyncCallback asyncCallback = null, object state = null)
         {
-            if(base.TryAdd(item, millisecondsTimeout))
-            {
-                item.NotifyProcessedAndAddedToQueue();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return base.BeginAdd(block, (ar) => {
+                block.NotifyProcessedAndAddedToQueue();
+                if(asyncCallback != null)
+                {
+                    asyncCallback(ar);
+                }
+            }, state);
         }
     }
 }

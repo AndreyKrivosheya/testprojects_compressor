@@ -18,47 +18,35 @@ namespace compressor.Processor.Payload
 
         readonly Common.Payload.Basic.Factory FactoryBasic;
 
-        public PayloadQueueAddToQueueToProcess QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToStart<BlockToProcess> QueueAddToQueueToProcessStart(QueueToProcess queue)
         {
-            return new PayloadQueueAddToQueueToProcess(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueAddToStart<BlockToProcess>(CancellationTokenSource, queue);
         }
-
-        public PayloadQueueAddToQueueToWrite QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToFinish<BlockToProcess> QueueAddToQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
-            return new PayloadQueueAddToQueueToWrite(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueAddToFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
         }
-
-        public PayloadQueueGetOneFrom<BlockToProcess> QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
-        
-        public PayloadQueueGetOneFrom<BlockToWrite> QueueGetOneFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
-
-        public PayloadQueueGetOneOrMoreFrom<BlockToProcess> QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneOrMoreFrom<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        public Common.Payload.Payload QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
             return FactoryBasic.Chain(
-                FactoryBasic.ReturnValue(maxBlocksToGet),
-                QueueGetOneFromQueueToProcess(queue, queueOperationTimeoutMilliseconds)
+                QueueAddToQueueToProcessStart(queue),
+                QueueAddToQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
             );
         }
 
-        public PayloadQueueGetOneOrMoreFrom<BlockToWrite> QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        public PayloadQueueAddToStart<BlockToWrite> QueueAddToQueueToWriteStart(QueueToWrite queue)
         {
-            return new PayloadQueueGetOneOrMoreFrom<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return new PayloadQueueAddToStart<BlockToWrite>(CancellationTokenSource, queue);
         }
-        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        public PayloadQueueAddToFinish<BlockToWrite> QueueAddToQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueAddToFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
             return FactoryBasic.Chain(
-                FactoryBasic.ReturnValue(maxBlocksToGet),
-                QueueGetOneOrMoreFromQueueToWrite(queue, queueOperationTimeoutMilliseconds)
+                QueueAddToQueueToWriteStart(queue),
+                QueueAddToQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
             );
         }
 
@@ -72,6 +60,72 @@ namespace compressor.Processor.Payload
             return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, queue);
         }
 
+        public PayloadQueueGetOneFromStart<BlockToProcess> QueueGetOneFromQueueToProcessStart(QueueToProcess queue)
+        {
+            return new PayloadQueueGetOneFromStart<BlockToProcess>(CancellationTokenSource, queue);
+        }
+        public PayloadQueueGetOneFromFinish<BlockToProcess> QueueGetOneFromQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueGetOneFromFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        {
+            return FactoryBasic.Chain( 
+                QueueGetOneFromQueueToProcessStart(queue),
+                QueueGetOneFromQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
+            );
+        }
+        
+        public PayloadQueueGetOneFromStart<BlockToWrite> QueueGetOneFromQueueToWriteStart(QueueToWrite queue)
+        {
+            return new PayloadQueueGetOneFromStart<BlockToWrite>(CancellationTokenSource, queue);
+        }
+        public PayloadQueueGetOneFromFinish<BlockToWrite> QueueGetOneFromQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueGetOneFromFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueGetOneFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        {
+            return FactoryBasic.Chain(
+                QueueGetOneFromQueueToWriteStart(queue),
+                QueueGetOneFromQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
+            );
+        }
+
+        public PayloadQueueGetOneOrMoreFromStart<BlockToProcess> QueueGetOneOrMoreFromQueueToProcessStart(QueueToProcess queue)
+        {
+            return new PayloadQueueGetOneOrMoreFromStart<BlockToProcess>(CancellationTokenSource, queue);
+        }
+        public PayloadQueueGetOneOrMoreFromFinish<BlockToProcess> QueueGetOneOrMoreFromQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueGetOneOrMoreFromFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        {
+            return FactoryBasic.Chain( 
+                FactoryBasic.ReturnValue(maxBlocksToGet),
+                QueueGetOneOrMoreFromQueueToProcessStart(queue),
+                QueueGetOneOrMoreFromQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
+            );
+        }
+        
+        public PayloadQueueGetOneOrMoreFromStart<BlockToWrite> QueueGetOneOrMoreFromQueueToWriteStart(QueueToWrite queue)
+        {
+            return new PayloadQueueGetOneOrMoreFromStart<BlockToWrite>(CancellationTokenSource, queue);
+        }
+        public PayloadQueueGetOneOrMoreFromFinish<BlockToWrite> QueueGetOneOrMoreFromQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
+        {
+            return new PayloadQueueGetOneOrMoreFromFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+        }
+        public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
+        {
+            return FactoryBasic.Chain(
+                FactoryBasic.ReturnValue(maxBlocksToGet),
+                QueueGetOneOrMoreFromQueueToWriteStart(queue),
+                QueueGetOneOrMoreFromQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
+            );
+        }
+        
         public PayloadProcessCompress ProcessCompress()
         {
             return new PayloadProcessCompress(CancellationTokenSource);

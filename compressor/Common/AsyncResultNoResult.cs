@@ -26,7 +26,11 @@ namespace compressor.Common
             m_AsyncState = state;
         }
 
-        public void SetAsCompleted(Exception exception, Boolean completedSynchronously)
+        public void SetAsCompleted(Boolean completedSynchronously)
+        {
+            SetAsCompletedFailed(null, completedSynchronously);
+        }
+        public void SetAsCompletedFailed(Exception exception, Boolean completedSynchronously)
         {
             // Passing null for exception means no error occurred. 
             // This is the common case

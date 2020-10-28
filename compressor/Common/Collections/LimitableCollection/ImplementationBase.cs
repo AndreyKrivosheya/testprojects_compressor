@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
-namespace compressor.Processor.Queue.Custom.LimitableCollection
+namespace compressor.Common.Collections.LimitableCollection
 {
     abstract class ImplementationBase<T, TCollection> : Implementation<T>
         where TCollection: IProducerConsumerCollection<T>, new()

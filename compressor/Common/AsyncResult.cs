@@ -19,7 +19,7 @@ namespace compressor.Common
             // Save the asynchronous operation's result
             m_result = result;
             // Tell the base class that the operation completed sucessfully (no exception)
-            base.SetAsCompleted(null, completedSynchronously);
+            base.SetAsCompleted(completedSynchronously);
         }
 
         new public TResult EndInvoke()

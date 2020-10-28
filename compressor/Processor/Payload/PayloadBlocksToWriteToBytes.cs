@@ -20,7 +20,22 @@ namespace compressor.Processor.Payload
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe((List<BlockToWrite> blocks) => new PayloadResultContinuationPending(Converter(blocks)));
+            return parameter.VerifyNotNullAnd(
+                (parameter) => {
+                    var parameterAsListOfBlocks = parameter as List<BlockToWrite>;
+                    if(parameterAsListOfBlocks != null)
+                    {
+                        return new PayloadResultContinuationPending(Converter(parameterAsListOfBlocks));
+                    }
+                    
+                    var parameterAsBlock = parameter as BlockToWrite;
+                    if(parameterAsBlock != null)
+                    {
+                        return new PayloadResultContinuationPending(Converter(new List<BlockToWrite>(new [] { parameterAsBlock })));
+                    }
+
+                    throw new ArgumentException(string.Format("Value of parameter '{0}' type '{1}' is not expected", parameter, parameter.GetType().AssemblyQualifiedName));
+                });
         }
     }
 }

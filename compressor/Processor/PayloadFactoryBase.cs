@@ -45,7 +45,7 @@ namespace compressor.Processor
                     )
                 ),
                 FactoryBasic.Conditional(
-                    (BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last,
+                    (object parameter) => parameter != null ? parameter.ConvertAnd((BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last) : false,
                     FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite),
                     FactoryBasic.Succeed()
                 )

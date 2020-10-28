@@ -1,6 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
+
+using compressor.Common.Collections;
 
 namespace compressor.Processor.Queue
 {
@@ -14,31 +15,71 @@ namespace compressor.Processor.Queue
                 throw new ArgumentException("Can't limit collection to less than 1 item", "maxCapacity");
             }
 
-            this.Implementation = new Custom.LimitableCollection<TBlock, ConcurrentQueue<TBlock>>(maxCapacity);
+            this.Implementation = new AsyncLimitableQueue<TBlock>(maxCapacity);
         }
 
-        readonly Custom.LimitableCollection<TBlock> Implementation;
+        readonly AsyncLimitableCollection<TBlock> Implementation;
 
         public void Dispose()
         {
             Implementation.Dispose();
         }
+
+        public virtual IAsyncResult BeginAdd(TBlock block, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
+        {
+            return Implementation.BeginAdd(block, cancellationToken, asyncCallback, state);
+        }
+        public virtual IAsyncResult BeginAdd(TBlock block, AsyncCallback asyncCallback = null, object state = null)
+        {
+            return Implementation.BeginAdd(block, asyncCallback, state);
+        }
+
+        public void EndAdd(IAsyncResult addingAsyncResult)
+        {
+            Implementation.EndAdd(addingAsyncResult);
+        }
+
+        public bool IsAddingCompleted
+        {
+            get
+            {
+                return Implementation.IsCompleted;
+            }
+        }
         
-        public virtual bool TryAdd(TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public void CompleteAdding()
         {
-            return Implementation.TryAdd(item, millisecondsTimeout, cancellationToken);
+            Implementation.CompleteAdding();
         }
-        public virtual bool TryAdd(TBlock item, int millisecondsTimeout)
+
+        public IAsyncResult BeginTake(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            return Implementation.TryAdd(item, millisecondsTimeout);
+            return Implementation.BeginTake(cancellationToken, asyncCallback, state);
         }
-        public bool TryAdd(TBlock item, CancellationToken cancellationToken)
+        public IAsyncResult BeginTake(AsyncCallback asyncCallback = null, object state = null)
         {
-            return TryAdd(item, 0, cancellationToken);
+            return Implementation.BeginTake(asyncCallback, state);
         }
-        public bool TryAdd(TBlock item)
+
+        public TBlock EndTake(IAsyncResult takingAsyncResult)
         {
-            return TryAdd(item, 0);
+            return Implementation.EndTake(takingAsyncResult);
+        }
+
+        public int Count
+        {
+            get
+            {
+                return Implementation.Count;
+            }
+        }
+
+        public int MaxCapacity
+        {
+            get
+            {
+                return Implementation.MaxCapacity;
+            }
         }
 
         public bool IsCompleted
@@ -49,47 +90,20 @@ namespace compressor.Processor.Queue
             }
         }
         
-        public bool IsAddingCompleted
-        {
-            get
-            {
-                return Implementation.IsAddingCompleted;
-            }
-        }
-        
-        public void CompleteAdding()
-        {
-            Implementation.CompleteAdding();
-        }
-
-        public bool TryTake(out TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
-        {
-            return Implementation.TryTake(out item, millisecondsTimeout, cancellationToken);
-        }
-        public bool TryTake(out TBlock item, int millisecondsTimeout)
-        {
-            return Implementation.TryTake(out item, millisecondsTimeout);
-        }
-        public bool TryTake(out TBlock item, CancellationToken cancellationToken)
-        {
-            return TryTake(out item, 0, cancellationToken);
-        }
-        public bool TryTake(out TBlock item)
-        {
-            return TryTake(out item, 0);
-        }
-
         public bool IsPercentsFull(int percents)
         {
             if(percents < 0 || percents > 100)
+            {
                 throw new ArgumentException("percents");
-            if(Implementation.MaxCapacity < 1)
+            }
+            
+            if(MaxCapacity < 1)
             {
                 return false;
             }
             else
             {
-                return Implementation.Count >= ((percents * Implementation.MaxCapacity) / 100f);
+                return Count >= ((percents * MaxCapacity) / 100f);
             }
         }
 

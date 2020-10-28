@@ -12,13 +12,20 @@ namespace compressor.Processor.Queue
                 this.Previous = previous;
                 if(this.Previous != null)
                 {
+                    //this.A = this.Previous.A + 1;
                     this.Previous.Last = false;
+                }
+                else
+                {
+                    //this.A = 0;
                 }
             }
             public AwaiterForAddedToQueue()
                 : this(null)
             {
             }
+
+            //readonly int A;
 
             AwaiterForAddedToQueue Previous = null;
 
