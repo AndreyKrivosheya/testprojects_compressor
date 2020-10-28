@@ -63,48 +63,11 @@ namespace compressor.Common.Collections
             }
         }
 
-        sealed class ProcessorAddToQueue: Common.Processor
-        {
-            public ProcessorAddToQueue(TCollection queue, T item, CancellationToken cancellationToken)
-            {
-                this.Implementation = queue;
-                this.Item = item;
-                this.CancellationToken = cancellationToken;
-            }
-
-            readonly TCollection Implementation;
-            readonly T Item;
-            readonly CancellationToken CancellationToken;
-
-            protected sealed override void RunOnThread()
-            {
-                if(!Implementation.TryAdd(Item, Timeout.Infinite, CancellationToken))
-                {
-                    if(CancellationToken.IsCancellationRequested)
-                    {
-                        throw new OperationCanceledException();
-                    }
-                    else
-                    {
-                        if(Implementation.IsAddingCompleted)
-                        {
-                            throw new InvalidOperationException("Can't add item to queue completed for adding");
-                        }
-                        else
-                        {
-                            // infinite wait for item to be added is finished but not canceled and queue is not completed for adding
-                            throw new NotSupportedException("Infinite wait for item to be added to collection is finished but not canceled");
-                        }
-                    }
-                }
-            }
-        }
-
-        readonly Dictionary<IAsyncResult, ProcessorAddToQueue> ProcessorsAddToQueue = new Dictionary<IAsyncResult, ProcessorAddToQueue>();
+        readonly Dictionary<IAsyncResult, Processor> ProcessorsAddToQueue = new Dictionary<IAsyncResult, Processor>();
         
         public IAsyncResult BeginAdd(T item, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            ProcessorAddToQueue processor;
+            Processor processor;
             IAsyncResult processorAsyncResult;
             {
                 if(Implementation.TryAdd(item, 0))
@@ -118,7 +81,27 @@ namespace compressor.Common.Collections
                 }
                 else
                 {
-                    processor = new ProcessorAddToQueue(Implementation, item, cancellationToken);
+                    processor = new ProcessorViaAction(() => {
+                        if(!Implementation.TryAdd(item, Timeout.Infinite, cancellationToken))
+                        {
+                            if(cancellationToken.IsCancellationRequested)
+                            {
+                                throw new OperationCanceledException();
+                            }
+                            else
+                            {
+                                if(Implementation.IsAddingCompleted)
+                                {
+                                    throw new InvalidOperationException("Can't add item to queue completed for adding");
+                                }
+                                else
+                                {
+                                    // infinite wait for item to be added is finished but not canceled and queue is not completed for adding
+                                    throw new NotSupportedException("Infinite wait for item to be added to collection is finished but not canceled");
+                                }
+                            }
+                        }
+                    });
                     processorAsyncResult = processor.BeginRun(asyncCallback, state);
                 }
             }
@@ -137,7 +120,7 @@ namespace compressor.Common.Collections
 
         public void EndAdd(IAsyncResult addingAsyncResult)
         {
-            ProcessorAddToQueue processor;
+            Processor processor;
             lock(ProcessorsAddToQueue)
             {
                 if(!ProcessorsAddToQueue.TryGetValue(addingAsyncResult, out processor))
@@ -196,49 +179,11 @@ namespace compressor.Common.Collections
             }
         }
 
-        sealed class ProcessorTakeFromQueue: Common.ProcessorWithResult<T>
-        {
-            public ProcessorTakeFromQueue(TCollection queue, CancellationToken cancellationToken)
-            {
-                this.Implementation = queue;
-                this.CancellationToken = cancellationToken;
-            }
-
-            readonly TCollection Implementation;
-            readonly CancellationToken CancellationToken;
-
-            protected sealed override T RunOnThread()
-            {
-                T item;
-                if(!Implementation.TryTake(out item, Timeout.Infinite, CancellationToken))
-                {
-                    if(CancellationToken.IsCancellationRequested)
-                    {
-                        throw new OperationCanceledException();
-                    }
-                    else
-                    {
-                        if(Implementation.IsCompleted)
-                        {
-                            throw new InvalidOperationException("Nothing to get out of empty queue completed for adding");
-                        }
-                        else
-                        {
-                            // infinite wait for item to be taken is finished but not canceled and queue is not empty
-                            throw new NotSupportedException("Infinite wait for item to be taken from collection is finished but not canceled");
-                        }
-                    }
-                }
-
-                return item;
-            }
-        }
-
-        readonly Dictionary<IAsyncResult, ProcessorTakeFromQueue> ProcessorsTakeFromQueue = new Dictionary<IAsyncResult, ProcessorTakeFromQueue>();
+        readonly Dictionary<IAsyncResult, ProcessorWithResult<T>> ProcessorsTakeFromQueue = new Dictionary<IAsyncResult, ProcessorWithResult<T>>();
         
         public IAsyncResult BeginTake(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            ProcessorTakeFromQueue processor;
+            ProcessorWithResult<T> processor;
             IAsyncResult processorAsyncResult;
             {
                 T item;
@@ -253,7 +198,30 @@ namespace compressor.Common.Collections
                 }
                 else
                 {
-                    processor = new ProcessorTakeFromQueue(Implementation, cancellationToken);
+                    processor = new ProcessorWithResultViaFunc<T>(() => {
+                        T item;
+                        if(!Implementation.TryTake(out item, Timeout.Infinite, cancellationToken))
+                        {
+                            if(cancellationToken.IsCancellationRequested)
+                            {
+                                throw new OperationCanceledException();
+                            }
+                            else
+                            {
+                                if(Implementation.IsCompleted)
+                                {
+                                    throw new InvalidOperationException("Nothing to get out of empty queue completed for adding");
+                                }
+                                else
+                                {
+                                    // infinite wait for item to be taken is finished but not canceled and queue is not empty
+                                    throw new NotSupportedException("Infinite wait for item to be taken from collection is finished but not canceled");
+                                }
+                            }
+                        }
+
+                        return item;
+                    });
                     processorAsyncResult = processor.BeginRun(asyncCallback, state);
                 }
             }
@@ -271,7 +239,7 @@ namespace compressor.Common.Collections
 
         public T EndTake(IAsyncResult takingAsyncResult)
         {
-            ProcessorTakeFromQueue processor;
+            ProcessorWithResult<T> processor;
             lock(ProcessorsTakeFromQueue)
             {
                 if(!ProcessorsTakeFromQueue.TryGetValue(takingAsyncResult, out processor))

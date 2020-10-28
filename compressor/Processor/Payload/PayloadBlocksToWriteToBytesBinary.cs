@@ -17,23 +17,30 @@ namespace compressor.Processor.Payload
         {
         }
 
-        static byte[] BlocksToBytes(List<BlockToWrite> blocks)
+        static byte[] BlocksToBytes(IEnumerable<BlockToWrite> blocks)
         {
-            if(blocks.Count == 1)
+            if(blocks.Any())
             {
-                return blocks[0].Data;
+                if(blocks.CountIsExactly(0))
+                {
+                    return blocks.First().Data;
+                }
+                else
+                {
+                    using(var blocksStream = new MemoryStream((int)(blocks.Select(x => x.Data.LongLength).Sum())))
+                    {
+                        foreach (var block in blocks)
+                        {
+                            blocksStream.Write(block.Data, 0, block.Data.Length);
+                        }
+
+                        return blocksStream.ToArray();
+                    }
+                }
             }
             else
             {
-                using(var blocksStream = new MemoryStream((int)(blocks.Select(x => x.Data.LongLength).Sum())))
-                {
-                    foreach (var block in blocks)
-                    {
-                        blocksStream.Write(block.Data, 0, block.Data.Length);
-                    }
-
-                    return blocksStream.ToArray();
-                }
+                return new byte[] {};
             }
         }
     }

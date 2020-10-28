@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 
+using compressor.Common.Threading;
+
 namespace compressor.Common
 {
     abstract class Processor
@@ -21,7 +23,8 @@ namespace compressor.Common
             }
             else
             {
-                (new Thread((object asyncResult) => {
+                // spawn async execution
+                Threads.QueueAndRun((object asyncResult) => {
                     var asyncResultTyped = (AsyncResultNoResult)asyncResult;
                     try
                     {
@@ -32,22 +35,8 @@ namespace compressor.Common
                     {
                         asyncResultTyped.SetAsCompletedFailed(e, false);
                     }
-                }) { IsBackground = true }).Start(PendingAsyncResult);
-                // ThreadPool.QueueUserWorkItem((asyncResult) => {
-                //     var asyncResultTyped = (AsyncResultNoResult)asyncResult;
-                //     if(asyncResultTyped != null)
-                //     {
-                //         try
-                //         {
-                //             RunOnThread();
-                //             asyncResultTyped.SetAsCompleted(false);
-                //         }
-                //         catch(Exception e)
-                //         {
-                //             asyncResultTyped.SetAsCompletedFailed(e, false);
-                //         }
-                //     }
-                // }, PendingAsyncResult);
+                }, PendingAsyncResult);
+                
                 return PendingAsyncResult;
             }
         }
