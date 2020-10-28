@@ -109,7 +109,7 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
                         {
                             if(observedCurrentAddersCount + 1 == ~CurrentAddersCountAddingCompletedMask)
                             {
-                                throw new  InvalidOperationException("Concurrent adders amount exceeded");
+                                throw new NotSupportedException("Concurrent adders amount exceeded");
                             }
                             if(cancellationToken.IsCancellationRequested)
                             {
@@ -200,7 +200,7 @@ namespace compressor.Processor.Queue.Custom.LimitableCollection
         public void CompleteAdding()
         {
             ThrowIfDisposed();
-            
+
             if(IsAddingCompleted)
             {
                 return;

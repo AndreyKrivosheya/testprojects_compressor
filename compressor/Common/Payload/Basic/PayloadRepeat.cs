@@ -29,7 +29,7 @@ namespace compressor.Common.Payload.Basic
                     case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:
                         // spent the cycle checking if anything is ready to work on
                         // ... be gentle with the CPU, don't waste all onto checking if there's nothing to do
-                        var awaitables = this.GetAwaitables();
+                        var awaitables = this.GetAwaitables().Where(x => x != null);
                         if(awaitables.Any())
                         {
                             var awaitablesForDebug = awaitables.ToArray();

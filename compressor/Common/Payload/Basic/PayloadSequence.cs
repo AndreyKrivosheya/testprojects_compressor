@@ -30,29 +30,29 @@ namespace compressor.Common.Payload.Basic
             public readonly bool Mandatory;
 
             public bool RanAtLeastOnce = false;
-            public bool Finished = false;
+            public bool Succeeded = false;
         }
 
         readonly List<PayloadWithState> Payloads;
 
         T TransformCurrentPayloadsLeftToRunTo<T>(Func<T> whenNothingLeftToRun, Func<IEnumerable<PayloadWithState>, T> whenAnyLeftToRun)
         {
-            var payloadsUnfinished = Payloads.Where(x => !x.Finished);
+            var payloadsNotYetSucceed = Payloads.Where(x => !x.Succeeded);
             // if no unfinished paylaods
-            if(!payloadsUnfinished.Any())
+            if(!payloadsNotYetSucceed.Any())
             {
                 return whenNothingLeftToRun();
             }
             else
             {
                 // if all unfinished payloads are either not mandatory or were never run
-                if(!(payloadsUnfinished.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
+                if(!(payloadsNotYetSucceed.Where(x => x.Mandatory || (!x.Mandatory && x.RanAtLeastOnce)).Any()))
                 {
                     return whenNothingLeftToRun();
                 }
                 else
                 {
-                    return whenAnyLeftToRun(payloadsUnfinished);
+                    return whenAnyLeftToRun(payloadsNotYetSucceed);
                 }
             }
         }
@@ -61,11 +61,11 @@ namespace compressor.Common.Payload.Basic
         {
             return TransformCurrentPayloadsLeftToRunTo<PayloadResult>(
                 whenNothingLeftToRun: () => new PayloadResultSucceeded(),
-                whenAnyLeftToRun:(payloadsUnfinished) => 
+                whenAnyLeftToRun:(payloadsNotYetSucceed) => 
                 {
                     var allSucceeded = true;
                     var allDoneNothing = true;
-                    foreach(var payload in payloadsUnfinished)
+                    foreach(var payload in payloadsNotYetSucceed)
                     {
                         if(CancellationTokenSource.IsCancellationRequested)
                         {
@@ -84,7 +84,7 @@ namespace compressor.Common.Payload.Basic
                                     {
                                         case PayloadResultStatus.Succeeded:
                                             // will not run succeedeed payload in future
-                                            payload.Finished = true;
+                                            payload.Succeeded = true;
                                             // ...
                                             allDoneNothing = false;
                                             break;
@@ -145,7 +145,7 @@ namespace compressor.Common.Payload.Basic
         {
             return TransformCurrentPayloadsLeftToRunTo<IEnumerable<WaitHandle>>(
                 whenNothingLeftToRun: () => Enumerable.Empty<WaitHandle>(),
-                whenAnyLeftToRun: (payloadsUnfinished) => payloadsUnfinished.SelectMany(x => x.Payload.GetAwaitables())
+                whenAnyLeftToRun: (payloadsNotYetSucceed) => payloadsNotYetSucceed.SelectMany(x => x.Payload.GetAwaitables())
             );
         }
 
