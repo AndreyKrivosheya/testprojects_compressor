@@ -4,7 +4,7 @@ namespace compressor.Common.Threading
 {
     class ThreadRunnerSpawnThread: ThreadRunner
     {
-        static System.Threading.ParameterizedThreadStart ThreadStart(AsyncResultNoResult asyncResult, Action<object> runner)
+        static System.Threading.ParameterizedThreadStart ThreadStart(AsyncResult asyncResult, Action<object> runner)
         {
             return (state) => {
                 try
@@ -31,7 +31,7 @@ namespace compressor.Common.Threading
                 throw new ArgumentNullException("runner");
             }
             
-            var asyncResult = new AsyncResultNoResult(null, null);
+            var asyncResult = new AsyncResult(null, null);
             (new System.Threading.Thread(ThreadStart(asyncResult, runner)) { IsBackground = true }).Start(state);
             return asyncResult;
         }
@@ -43,7 +43,7 @@ namespace compressor.Common.Threading
                 throw new ArgumentNullException("runner");
             }
             
-            var asyncResult = new AsyncResultNoResult(null, null);
+            var asyncResult = new AsyncResult(null, null);
             (new System.Threading.Thread(ThreadStart(asyncResult, runner)) { IsBackground = true, Name = name }).Start(state);
             return asyncResult;
         }

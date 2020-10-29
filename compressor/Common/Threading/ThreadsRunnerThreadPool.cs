@@ -4,7 +4,7 @@ namespace compressor.Common.Threading
 {
     class ThreadRunnerThreadPool: ThreadRunner
     {
-        static System.Threading.WaitCallback WaitCallback(AsyncResultNoResult asyncResult, Action<object> runner)
+        static System.Threading.WaitCallback WaitCallback(AsyncResult asyncResult, Action<object> runner)
         {
             return (state) => {
                 try
@@ -31,7 +31,7 @@ namespace compressor.Common.Threading
                 throw new ArgumentNullException("runner");
             }
 
-            var asyncResult = new AsyncResultNoResult(null, null);
+            var asyncResult = new AsyncResult(null, null);
             System.Threading.ThreadPool.QueueUserWorkItem(WaitCallback(asyncResult, runner), state);
             return asyncResult;
         }
@@ -43,7 +43,7 @@ namespace compressor.Common.Threading
                 throw new ArgumentNullException("runner");
             }
             
-            var asyncResult = new AsyncResultNoResult(null, null);
+            var asyncResult = new AsyncResult(null, null);
             System.Threading.ThreadPool.QueueUserWorkItem(WaitCallback(asyncResult, (state) => {
                 var oldName = System.Threading.Thread.CurrentThread.Name;
                 try

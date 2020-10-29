@@ -10,15 +10,15 @@ namespace compressor.Processor.Queue
         {
             public AwaiterForAddedToQueue(AwaiterForAddedToQueue previous)
             {
-                this.Previous = previous;
                 if(this.Previous != null)
                 {
-                    this.A = this.Previous.A + 1;
+                    this.Previous = previous;
                     this.Previous.Last = false;
+                    //this.A = this.Previous.A + 1;
                 }
                 else
                 {
-                    this.A = 0;
+                    //this.A = 0;
                 }
             }
             public AwaiterForAddedToQueue()
@@ -26,7 +26,7 @@ namespace compressor.Processor.Queue
             {
             }
 
-            readonly int A;
+            //readonly int A;
 
             AwaiterForAddedToQueue Previous = null;
 
@@ -36,51 +36,36 @@ namespace compressor.Processor.Queue
 
             public void NotifyProcessedAndAddedToQueueToWrite()
             {
-                Dictionary<IAsyncResult, object> IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWriteCopy;
-                lock(this)
+                Common.Processors ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy;
+                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
                 {
                     Previous = null;
                     ProcessedAndAddedToQueue = true;
-                    IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWriteCopy = new Dictionary<IAsyncResult, object>(IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite);
+                    ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy = new Common.Processors(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite);
                 }
                 // notify each of the async awaiters
-                foreach(var pair in IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWriteCopy)
-                {
-                    var asyncResult = ((Common.AsyncResultNoResult)pair.Key);
-                    if(!asyncResult.IsCompleted)
-                    {
-                        asyncResult.SetAsCompleted(false);
-                    }
-                }
+                ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy.SetAllToBeCompletedWithoutProcessorAsCompleted(false);
             }
 
-            readonly Dictionary<IAsyncResult, object> IAsyncResultsWaitAllPreviousBlocksProcessedAddedToQueueToWrite = new Dictionary<IAsyncResult, object>();
+            readonly Common.Processors ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite = new Common.Processors();
 
             public IAsyncResult BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
-                lock(this)
+                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
                 {
                     var previous = Previous;
                     if(previous == null)
                     {
-                        var asyncResultCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to async results dictionary as soon as possible
-                        IAsyncResultsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.Add(asyncResultCompleted, null);
-                        // set completed
-                        asyncResultCompleted.SetAsCompleted(true);
-
-                        return asyncResultCompleted;
+                        return ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
                     }
                     else
                     {
-                        var asyncResultToBeCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to processors as soon as possible
-                        IAsyncResultsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.Add(asyncResultToBeCompleted, null);
+                        var asyncResultToBeCompleted = ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
                         // spin off wait for previsous is notified added
                         previous.BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback:
                             (ar) => {
                                 previous.EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(ar);
-                                asyncResultToBeCompleted.SetAsCompleted(false);
+                                ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
                             });
 
                         return asyncResultToBeCompleted;
@@ -94,58 +79,26 @@ namespace compressor.Processor.Queue
 
             public void EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
             {
-                lock(this)
-                {
-                    if(!IAsyncResultsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.ContainsKey(waitingAsyncResult))
-                    {
-                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitAllPreviousBlocksProcessedAddedToQueueToWrite() method on the current block");
+                ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.EndRun(waitingAsyncResult,
+                    onAsyncResultNotFromThisProcessors: () => {
+                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite() method on this block");
                     }
-                }
-
-                try
-                {
-                    var addingAsyncResultAsCommonAsyncResultNoResult = waitingAsyncResult as Common.AsyncResultNoResult;
-                    if(addingAsyncResultAsCommonAsyncResultNoResult != null)
-                    {
-                        addingAsyncResultAsCommonAsyncResultNoResult.EndInvoke();
-                    }
-                    else
-                    {
-                        throw new NotSupportedException("Could not end unexpected but recognized async adding result");
-                    }
-                }
-                finally
-                {
-                    lock(this)
-                    {
-                        IAsyncResultsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.Remove(waitingAsyncResult);
-                    }
-                }
+                );
             }
 
-            readonly Dictionary<IAsyncResult, object> IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite = new Dictionary<IAsyncResult, object>();
+            readonly Common.Processors ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite = new Common.Processors();
             
             public IAsyncResult BeginWaitThisBlockProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
-                lock(this)
+                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
                 {
                     if(ProcessedAndAddedToQueue)
                     {
-                        var asyncResultCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to async results dictionary as soon as possible
-                        IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite.Add(asyncResultCompleted, null);
-                        // set completed
-                        asyncResultCompleted.SetAsCompleted(true);
-
-                        return asyncResultCompleted;
+                        return ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
                     }
                     else
                     {
-                        var asyncResultToBeCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to processors as soon as possible
-                        IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite.Add(asyncResultToBeCompleted, null);
-                        
-                        return asyncResultToBeCompleted;
+                        return ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
                     }
                 }
             }
@@ -156,66 +109,41 @@ namespace compressor.Processor.Queue
 
             public void EndWaitThisBlockProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
             {
-                lock(this)
-                {
-                    if(!IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite.ContainsKey(waitingAsyncResult))
-                    {
-                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitAllPreviousBlocksProcessedAddedToQueueToWrite() method on the current block");
+                ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.EndRun(waitingAsyncResult,
+                    onAsyncResultNotFromThisProcessors: () => {
+                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitThisBlockProcessedAndAddedToQueueToWrite() method on this block");
                     }
-                }
-
-                try
-                {
-                    var waitingAsyncResultAsCommonAsyncResultNoResult = waitingAsyncResult as Common.AsyncResultNoResult;
-                    if(waitingAsyncResultAsCommonAsyncResultNoResult != null)
-                    {
-                        waitingAsyncResultAsCommonAsyncResultNoResult.EndInvoke();
-                    }
-                    else
-                    {
-                        throw new NotSupportedException("Could not end unexpected but recognized async adding result");
-                    }
-                }
-                finally
-                {
-                    lock(this)
-                    {
-                        IAsyncResultsWaitThisBlockProcessedAndAddedToQueueToWrite.Remove(waitingAsyncResult);
-                    }
-                }
+                );
             }
 
-            readonly Dictionary<IAsyncResult, object> IAsyncResultsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite = new Dictionary<IAsyncResult, object>();
+            readonly Common.Processors ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite = new Common.Processors();
+
             public IAsyncResult BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
-                lock(this)
+                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
                 {
                     var previous = Previous;
                     if(previous == null)
                     {
-                        var asyncResultToBeCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to async results to be completed
-                        IAsyncResultsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.Add(asyncResultToBeCompleted, null);
+                        var asyncResultToBeCompleted = ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
                         // spin off waiting for this to be notified added
                         this.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
                             this.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
-                            asyncResultToBeCompleted.SetAsCompleted(false);
+                            ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
                         });
 
                         return asyncResultToBeCompleted;
                     }
                     else
                     {
-                        var asyncResultToBeCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                        // add to async results to be completed
-                        IAsyncResultsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.Add(asyncResultToBeCompleted, null);
+                        var asyncResultToBeCompleted = ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
                         // spin off waiting for all previous to be notified added
                         previous.BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
                             previous.EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(ar);
                             // spin off waiting for this to be notified added
                             this.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
                                 this.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
-                                asyncResultToBeCompleted.SetAsCompleted(false);
+                                ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
                             });
                         });
 
@@ -230,33 +158,11 @@ namespace compressor.Processor.Queue
 
             public void EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
             {
-                lock(this)
-                {
-                    if(!IAsyncResultsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.ContainsKey(waitingAsyncResult))
-                    {
-                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitAllPreviousBlocksProcessedAddedToQueueToWrite() method on the current block");
+                ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.EndRun(waitingAsyncResult,
+                    onAsyncResultNotFromThisProcessors: () => {
+                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite() method on this block");
                     }
-                }
-
-                try
-                {
-                    var waitingAsyncResultAsCommonAsyncResultNoResult = waitingAsyncResult as Common.AsyncResultNoResult;
-                    if(waitingAsyncResultAsCommonAsyncResultNoResult != null)
-                    {
-                        waitingAsyncResultAsCommonAsyncResultNoResult.EndInvoke();
-                    }
-                    else
-                    {
-                        throw new NotSupportedException("Could not end unexpected but recognized async adding result");
-                    }
-                }
-                finally
-                {
-                    lock(this)
-                    {
-                        IAsyncResultsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.Remove(waitingAsyncResult);
-                    }
-                }
+                );
             }
         };
 
