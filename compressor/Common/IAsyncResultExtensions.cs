@@ -5,6 +5,14 @@ namespace compressor.Common
 {
     static class IAsyncResultExtensions
     {
+        public static void WaitCompleted(this IAsyncResult asyncResult)
+        {
+            if(!asyncResult.IsCompleted)
+            {
+                asyncResult.AsyncWaitHandle.WaitOne();
+            }
+        }
+
         public static T WaitCompleted<T>(this IAsyncResult asyncResult, int waitTimeout, CancellationToken cancellationToken, Func<IAsyncResult, T> whenWaitTimedOut, Func<IAsyncResult, T> whenCompleted)
         {
             if(asyncResult.IsCompleted)

@@ -6,9 +6,14 @@ namespace compressor.Common.Threading
     {
         static readonly ThreadRunner Runner = new ThreadRunnerSpawnThread();
 
-        public static void QueueAndRun(Action<object> runner, object state)
+        public static IAsyncResult QueueAndRun(Action<object> runner, object state)
         {
-            Runner.QueueAndRun(runner, state);
+            return Runner.QueueAndRun(runner, state);
+        }
+
+        public static IAsyncResult QueueAndRun(Action<object> runner, object state, string name)
+        {
+            return Runner.QueueAndRun(runner, state, name);
         }
     }
 }
