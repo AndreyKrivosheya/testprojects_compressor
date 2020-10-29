@@ -16,9 +16,9 @@ namespace compressor.Common.Payload.Streams
             }
 
             this.ExceptionProducer = exceptionProducer;
-            if(this.ExceptionProducer != null)
+            if(this.ExceptionProducer == null)
             {
-                this.ExceptionProducer = (e) => null;
+                this.ExceptionProducer = (e) => e;
             }
         }
 
@@ -47,11 +47,18 @@ namespace compressor.Common.Payload.Streams
                 var eNew = ExceptionProducer(e);
                 if(eNew != null)
                 {
-                    throw eNew;
+                    if(!object.ReferenceEquals(e, eNew))
+                    {
+                        throw eNew;
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
                 else
                 {
-                    throw;
+                    return new PayloadResultContinuationPendingDoneNothing();
                 }
             }
         }
