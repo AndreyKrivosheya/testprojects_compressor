@@ -63,25 +63,28 @@ namespace compressor.Common.Collections
             }
         }
 
-        readonly Dictionary<IAsyncResult, Processor> ProcessorsAddToQueue = new Dictionary<IAsyncResult, Processor>();
+        readonly Dictionary<IAsyncResult, Processor> IAsyncResultsToProcessorsAddToQueue = new Dictionary<IAsyncResult, Processor>();
         
         public IAsyncResult BeginAdd(T item, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            Processor processor;
-            IAsyncResult processorAsyncResult;
+            if(Implementation.TryAdd(item, 0))
             {
-                if(Implementation.TryAdd(item, 0))
+                var asyncResultCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
+                
+                lock(IAsyncResultsToProcessorsAddToQueue)
                 {
-                    var
-                    asyncResultCompleted = new Common.AsyncResultNoResult(asyncCallback, state);
-                    asyncResultCompleted.SetAsCompleted(true);
-
-                    processor = null;
-                    processorAsyncResult = asyncResultCompleted;
+                    IAsyncResultsToProcessorsAddToQueue.Add(asyncResultCompleted, null);
                 }
-                else
+
+                asyncResultCompleted.SetAsCompleted(true);
+
+                return asyncResultCompleted;
+            }
+            else
+            {
+                lock(IAsyncResultsToProcessorsAddToQueue)
                 {
-                    processor = new ProcessorViaAction(() => {
+                    var processor = new ProcessorViaAction(() => {
                         if(!Implementation.TryAdd(item, Timeout.Infinite, cancellationToken))
                         {
                             if(cancellationToken.IsCancellationRequested)
@@ -102,16 +105,13 @@ namespace compressor.Common.Collections
                             }
                         }
                     });
-                    processorAsyncResult = processor.BeginRun(asyncCallback, state);
+                    var processorAsyncResult = processor.BeginRun(asyncCallback, state);
+                    
+                    IAsyncResultsToProcessorsAddToQueue.Add(processorAsyncResult, processor);
+
+                    return processorAsyncResult;
                 }
             }
-
-            lock(ProcessorsAddToQueue)
-            {
-                ProcessorsAddToQueue.Add(processorAsyncResult, processor);
-            }
-            
-            return processorAsyncResult;
         }
         public IAsyncResult BeginAdd(T item, AsyncCallback asyncCallback = null, object state = null)
         {
@@ -121,9 +121,9 @@ namespace compressor.Common.Collections
         public void EndAdd(IAsyncResult addingAsyncResult)
         {
             Processor processor;
-            lock(ProcessorsAddToQueue)
+            lock(IAsyncResultsToProcessorsAddToQueue)
             {
-                if(!ProcessorsAddToQueue.TryGetValue(addingAsyncResult, out processor))
+                if(!IAsyncResultsToProcessorsAddToQueue.TryGetValue(addingAsyncResult, out processor))
                 {
                     throw new InvalidOperationException("End of asynchronius add request did not originate from a BeginAdd() method on the current queue");
                 }
@@ -150,13 +150,12 @@ namespace compressor.Common.Collections
             }
             finally
             {
-                lock(ProcessorsAddToQueue)
+                lock(IAsyncResultsToProcessorsAddToQueue)
                 {
-                    ProcessorsAddToQueue.Remove(addingAsyncResult);
+                    IAsyncResultsToProcessorsAddToQueue.Remove(addingAsyncResult);
                 }
             }
         }
-
 
         public bool IsAddingCompleted
         {
@@ -179,26 +178,28 @@ namespace compressor.Common.Collections
             }
         }
 
-        readonly Dictionary<IAsyncResult, ProcessorWithResult<T>> ProcessorsTakeFromQueue = new Dictionary<IAsyncResult, ProcessorWithResult<T>>();
+        readonly Dictionary<IAsyncResult, ProcessorWithResult<T>> IAsyncResultsToProcessorsTakeFromQueue = new Dictionary<IAsyncResult, ProcessorWithResult<T>>();
         
         public IAsyncResult BeginTake(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            ProcessorWithResult<T> processor;
-            IAsyncResult processorAsyncResult;
+            T item;
+            if(Implementation.TryTake(out item, 0))
             {
-                T item;
-                if(Implementation.TryTake(out item, 0))
+                var asyncResultCompleted = new Common.AsyncResult<T>(asyncCallback, state);
+                lock(IAsyncResultsToProcessorsTakeFromQueue)
                 {
-                    var
-                    asyncResultCompleted = new Common.AsyncResult<T>(asyncCallback, state);
-                    asyncResultCompleted.SetAsCompleted(item, true);
-
-                    processor = null;
-                    processorAsyncResult = asyncResultCompleted;
+                    IAsyncResultsToProcessorsTakeFromQueue.Add(asyncResultCompleted, null);
                 }
-                else
+                
+                asyncResultCompleted.SetAsCompleted(item, true);
+
+                return asyncResultCompleted;
+            }
+            else
+            {
+                lock(IAsyncResultsToProcessorsTakeFromQueue)
                 {
-                    processor = new ProcessorWithResultViaFunc<T>(() => {
+                    var processor = new ProcessorWithResultViaFunc<T>(() => {
                         T item;
                         if(!Implementation.TryTake(out item, Timeout.Infinite, cancellationToken))
                         {
@@ -222,15 +223,13 @@ namespace compressor.Common.Collections
 
                         return item;
                     });
-                    processorAsyncResult = processor.BeginRun(asyncCallback, state);
+                    var processorAsyncResult = processor.BeginRun(asyncCallback, state);
+
+                    IAsyncResultsToProcessorsTakeFromQueue.Add(processorAsyncResult, processor);
+
+                    return processorAsyncResult;
                 }
             }
-
-            lock(ProcessorsTakeFromQueue)
-            {
-                ProcessorsTakeFromQueue.Add(processorAsyncResult, processor);
-            }
-            return processorAsyncResult;
         }
         public IAsyncResult BeginTake(AsyncCallback asyncCallback = null, object state = null)
         {
@@ -240,9 +239,9 @@ namespace compressor.Common.Collections
         public T EndTake(IAsyncResult takingAsyncResult)
         {
             ProcessorWithResult<T> processor;
-            lock(ProcessorsTakeFromQueue)
+            lock(IAsyncResultsToProcessorsTakeFromQueue)
             {
-                if(!ProcessorsTakeFromQueue.TryGetValue(takingAsyncResult, out processor))
+                if(!IAsyncResultsToProcessorsTakeFromQueue.TryGetValue(takingAsyncResult, out processor))
                 {
                     throw new InvalidOperationException("End of asynchronius take request did not originate from a BeginTake() method on the current queue");
                 }
@@ -269,9 +268,9 @@ namespace compressor.Common.Collections
             }
             finally
             {
-                lock(ProcessorsTakeFromQueue)
+                lock(IAsyncResultsToProcessorsTakeFromQueue)
                 {
-                    ProcessorsTakeFromQueue.Remove(takingAsyncResult);
+                    IAsyncResultsToProcessorsTakeFromQueue.Remove(takingAsyncResult);
                 }
             }
         }
