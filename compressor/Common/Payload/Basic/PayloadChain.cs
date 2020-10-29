@@ -7,17 +7,19 @@ namespace compressor.Common.Payload.Basic
 {
     class PayloadChain: Payload, AwaitablesHolder
     {
-        public PayloadChain(CancellationTokenSource cancellationTokenSource, IEnumerable<Payload> payloads)
+        public PayloadChain(CancellationTokenSource cancellationTokenSource, bool repeatable, IEnumerable<Payload> payloads)
             : base(cancellationTokenSource)
         {
             this.Payloads = new List<Payload>(payloads);
         }
-        public PayloadChain(CancellationTokenSource cancellationTokenSource, params Payload[] payloads)
-            : this(cancellationTokenSource, payloads.AsEnumerable())
+        public PayloadChain(CancellationTokenSource cancellationTokenSource, bool repeatable, params Payload[] payloads)
+            : this(cancellationTokenSource, repeatable, payloads.AsEnumerable())
         {
+            this.Repeatable = repeatable;
         }
 
         readonly IEnumerable<Payload> Payloads;
+        readonly bool Repeatable;
         
         IEnumerator<Payload> PayloadCurrent = null;
         object PayloadCurrentParameter = null;
@@ -49,10 +51,23 @@ namespace compressor.Common.Payload.Basic
                         else
                         {
                             // reset payloads and argument
-                            PayloadCurrent = null;
-                            PayloadCurrentParameter = null;
-                            // ...
-                            return payloadCurrentResult;
+                            if(Repeatable)
+                            {
+                                PayloadCurrentParameter = parameter;
+                                PayloadCurrent = Payloads.GetEnumerator();
+                                if(!PayloadCurrent.MoveNext())
+                                {
+                                    return new PayloadResultSucceeded();
+                                }
+                                continue;
+                            }
+                            else
+                            {
+                                PayloadCurrent = null;
+                                PayloadCurrentParameter = null;
+                                // ...
+                                return payloadCurrentResult;
+                            }
                         }
                     case PayloadResultStatus.ContinuationPendingDoneNothing:
                     case PayloadResultStatus.ContinuationPendingEvaluatedToEmptyPayload:

@@ -108,11 +108,20 @@ namespace compressor.Common.Payload.Basic
 
         public PayloadChain Chain(IEnumerable<Common.Payload.Payload> payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
         }
         public PayloadChain Chain(params Common.Payload.Payload[] payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
+        }
+
+        public PayloadChain ChainRepeatable(IEnumerable<Common.Payload.Payload> payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
+        }
+        public PayloadChain ChainRepeatable(params Common.Payload.Payload[] payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
         }
 
         public PayloadRepeat Repeat(Common.Payload.Payload payload)
