@@ -29,8 +29,28 @@ namespace compressor.Processor.Payload
                     whenCompleted:
                         (completedAsyncResult) =>
                         {
-                            Queue.EndAdd(completedAsyncResult);
-                            return new PayloadResultContinuationPending();
+                            try
+                            {
+                                Queue.EndAdd(completedAsyncResult);
+                                return new PayloadResultContinuationPending();
+                            }
+                            catch(OperationCanceledException)
+                            {
+                                return new PayloadResultCanceled();
+                            }
+                            catch(InvalidOperationException)
+                            {
+                                if(Queue.IsAddingCompleted)
+                                {
+                                    // something wrong: queue is closed for additions, but there's block outstanding
+                                    // probably there's an exception on another worker thread
+                                    return new PayloadResultSucceeded();
+                                }
+                                else
+                                {
+                                    throw;
+                                }
+                            }
                         }
                 );
             });

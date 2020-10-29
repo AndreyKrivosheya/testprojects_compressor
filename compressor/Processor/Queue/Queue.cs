@@ -43,7 +43,7 @@ namespace compressor.Processor.Queue
         {
             get
             {
-                return Implementation.IsCompleted;
+                return Implementation.IsAddingCompleted;
             }
         }
         

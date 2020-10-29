@@ -10,15 +10,15 @@ namespace compressor.Processor.Queue
         {
             public AwaiterForAddedToQueue(AwaiterForAddedToQueue previous)
             {
-                if(this.Previous != null)
+                if(previous != null)
                 {
                     this.Previous = previous;
                     this.Previous.Last = false;
-                    //this.A = this.Previous.A + 1;
+                    this.A = this.Previous.A + 1;
                 }
                 else
                 {
-                    //this.A = 0;
+                    this.A = 0;
                 }
             }
             public AwaiterForAddedToQueue()
@@ -26,7 +26,7 @@ namespace compressor.Processor.Queue
             {
             }
 
-            //readonly int A;
+            readonly int A;
 
             AwaiterForAddedToQueue Previous = null;
 
