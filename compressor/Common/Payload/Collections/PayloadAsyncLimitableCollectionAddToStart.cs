@@ -1,28 +1,27 @@
 using System;
 using System.Threading;
 
+using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
-using compressor.Processor.Settings;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueAddToStart<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionAddToStart<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueAddToStart(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionAddToStart(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
         }
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
             return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (TBlock blockToAdd) => 
+            (T itemToAdd) => 
             {
                 try
                 {
-                    var addingAyncResult = Queue.BeginAdd(blockToAdd, CancellationTokenSource.Token);
+                    var addingAyncResult = AsyncLimitableCollection.BeginAdd(itemToAdd, CancellationTokenSource.Token);
                     return new PayloadResultContinuationPending(addingAyncResult);
                 }
                 catch(OperationCanceledException)
@@ -31,7 +30,7 @@ namespace compressor.Processor.Payload
                 }
                 catch(InvalidOperationException)
                 {
-                    if(Queue.IsAddingCompleted)
+                    if(AsyncLimitableCollection.IsAddingCompleted)
                     {
                         // something wrong: queue is closed for additions, but there's block outstanding
                         // probably there's an exception on another worker thread

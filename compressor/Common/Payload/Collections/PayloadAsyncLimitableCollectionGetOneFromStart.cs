@@ -1,17 +1,16 @@
 using System;
 using System.Threading;
 
+using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
-using compressor.Processor.Settings;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueGetOneFromStart<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionGetOneFromStart<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueGetOneFromStart(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionGetOneFromStart(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
         }
 
@@ -19,7 +18,7 @@ namespace compressor.Processor.Payload
         {
             try
             {
-                var takingAyncResult = Queue.BeginTake(CancellationTokenSource.Token);
+                var takingAyncResult = AsyncLimitableCollection.BeginTake(CancellationTokenSource.Token);
                 return new PayloadResultContinuationPending(takingAyncResult);
             }
             catch(OperationCanceledException)
@@ -28,7 +27,7 @@ namespace compressor.Processor.Payload
             }
             catch(InvalidOperationException)
             {
-                if(!Queue.IsCompleted)
+                if(!AsyncLimitableCollection.IsCompleted)
                 {
                     throw;
                 }

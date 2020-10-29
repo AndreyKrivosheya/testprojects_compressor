@@ -2,18 +2,17 @@ using System;
 using System.Threading;
 
 using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueGetOneFromFinish<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionGetOneFromFinish<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueGetOneFromFinish(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionGetOneFromFinish(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection, int asyncLimitableCollectionOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
-            this.Timeout = queueOperationTimeoutMilliseconds;
+            this.Timeout = asyncLimitableCollectionOperationTimeoutMilliseconds;
         }
 
         readonly int Timeout;
@@ -31,7 +30,7 @@ namespace compressor.Processor.Payload
                         {
                             try
                             {
-                                var blockTaken = Queue.EndTake(completedAsyncResult);
+                                var blockTaken = AsyncLimitableCollection.EndTake(completedAsyncResult);
                                 return new PayloadResultContinuationPending(blockTaken);
                             }
                             catch(OperationCanceledException)
@@ -40,7 +39,7 @@ namespace compressor.Processor.Payload
                             }
                             catch(InvalidOperationException)
                             {
-                                if(Queue.IsCompleted)
+                                if(AsyncLimitableCollection.IsCompleted)
                                 {
                                     return new PayloadResultSucceeded();
                                 }

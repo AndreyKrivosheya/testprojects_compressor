@@ -3,18 +3,17 @@ using System.Collections.Generic;
 using System.Threading;
 
 using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueGetOneOrMoreFromFinish<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionGetOneOrMoreFromFinish<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueGetOneOrMoreFromFinish(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionGetOneOrMoreFromFinish(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection, int asyncLimitableCollectionOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
-            this.Timeout = queueOperationTimeoutMilliseconds;
+            this.Timeout = asyncLimitableCollectionOperationTimeoutMilliseconds;
         }
 
         readonly int Timeout;
@@ -31,14 +30,14 @@ namespace compressor.Processor.Payload
                         (completedAsyncResult) =>
                         {
                             var maxBlocksToGet = (int)completedAsyncResult.AsyncState;
-                            var blocksFromQueue = new List<TBlock>(Math.Min(1, maxBlocksToGet));
+                            var blocksFromQueue = new List<T>(Math.Min(1, maxBlocksToGet));
                             while(blocksFromQueue.Count < blocksFromQueue.Capacity)
                             {
                                 if(blocksFromQueue.Count == 0 )
                                 {
                                     try
                                     {
-                                        var blockTaken = Queue.EndTake(completedAsyncResult);
+                                        var blockTaken = AsyncLimitableCollection.EndTake(completedAsyncResult);
                                         blocksFromQueue.Add(blockTaken);
                                         continue;
                                     }
@@ -48,7 +47,7 @@ namespace compressor.Processor.Payload
                                     }
                                     catch(InvalidOperationException)
                                     {
-                                        if(Queue.IsCompleted)
+                                        if(AsyncLimitableCollection.IsCompleted)
                                         {
                                             break;
                                         }
@@ -60,7 +59,7 @@ namespace compressor.Processor.Payload
                                 }
                                 else
                                 {
-                                    if(Queue.Count < 1)
+                                    if(AsyncLimitableCollection.Count < 1)
                                     {
                                         break;
                                     }
@@ -75,7 +74,7 @@ namespace compressor.Processor.Payload
                                                 {
                                                     try
                                                     {
-                                                        asyncResultGettingMoreThenOneItem = Queue.BeginTake(cancellationCombined.Token);
+                                                        asyncResultGettingMoreThenOneItem = AsyncLimitableCollection.BeginTake(cancellationCombined.Token);
                                                     }
                                                     catch(OperationCanceledException)
                                                     {
@@ -83,7 +82,7 @@ namespace compressor.Processor.Payload
                                                     }
                                                     catch(InvalidOperationException)
                                                     {
-                                                        if(Queue.IsCompleted)
+                                                        if(AsyncLimitableCollection.IsCompleted)
                                                         {
                                                             break;
                                                         }
@@ -100,7 +99,7 @@ namespace compressor.Processor.Payload
                                                 {
                                                     try
                                                     {
-                                                        var blockTaken = Queue.EndTake(asyncResultGettingMoreThenOneItem);
+                                                        var blockTaken = AsyncLimitableCollection.EndTake(asyncResultGettingMoreThenOneItem);
                                                         blocksFromQueue.Add(blockTaken);
                                                         continue;
                                                     }
@@ -117,7 +116,7 @@ namespace compressor.Processor.Payload
                                                     }
                                                     catch(InvalidOperationException)
                                                     {
-                                                        if(Queue.IsCompleted)
+                                                        if(AsyncLimitableCollection.IsCompleted)
                                                         {
                                                             break;
                                                         }
@@ -139,7 +138,7 @@ namespace compressor.Processor.Payload
                             }
                             else
                             {
-                                if(Queue.IsCompleted)
+                                if(AsyncLimitableCollection.IsCompleted)
                                 {
                                     return new PayloadResultSucceeded();
                                 }

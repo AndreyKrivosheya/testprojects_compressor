@@ -2,18 +2,17 @@ using System;
 using System.Threading;
 
 using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueAddToFinish<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionAddToFinish<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueAddToFinish(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue, int queueOperationTimeoutMilliseconds)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionAddToFinish(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection, int asyncLimitableCollectionOperationTimeoutMilliseconds)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
-            this.Timeout = queueOperationTimeoutMilliseconds;
+            this.Timeout = asyncLimitableCollectionOperationTimeoutMilliseconds;
         }
 
         readonly int Timeout;
@@ -31,7 +30,7 @@ namespace compressor.Processor.Payload
                         {
                             try
                             {
-                                Queue.EndAdd(completedAsyncResult);
+                                AsyncLimitableCollection.EndAdd(completedAsyncResult);
                                 return new PayloadResultContinuationPending();
                             }
                             catch(OperationCanceledException)
@@ -40,9 +39,9 @@ namespace compressor.Processor.Payload
                             }
                             catch(InvalidOperationException)
                             {
-                                if(Queue.IsAddingCompleted)
+                                if(AsyncLimitableCollection.IsAddingCompleted)
                                 {
-                                    // something wrong: queue is closed for additions, but there's block outstanding
+                                    // something wrong: AsyncLimitableCollection is closed for additions, but there's block outstanding
                                     // probably there's an exception on another worker thread
                                     return new PayloadResultSucceeded();
                                 }

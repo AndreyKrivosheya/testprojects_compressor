@@ -5,7 +5,7 @@ using compressor.Common.Collections;
 
 namespace compressor.Processor.Queue
 {
-    class Queue<TBlock> : IDisposable
+    class Queue<TBlock> : AsyncLimitableCollection<TBlock>, IDisposable
         where TBlock: Block
     {
         public Queue(int maxCapacity)

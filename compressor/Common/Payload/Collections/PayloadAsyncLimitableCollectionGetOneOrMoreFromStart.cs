@@ -2,17 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using compressor.Common;
+using compressor.Common.Collections;
 using compressor.Common.Payload;
-using compressor.Processor.Queue;
-using compressor.Processor.Settings;
 
-namespace compressor.Processor.Payload
+namespace compressor.Common.Payload.Collections
 {
-    class PayloadQueueGetOneOrMoreFromStart<TBlock>: PayloadQueue<TBlock>
-        where TBlock: Block
+    class PayloadAsyncLimitableCollectionGetOneOrMoreFromStart<T>: PayloadAsyncLimitableCollection<T>
     {
-        public PayloadQueueGetOneOrMoreFromStart(CancellationTokenSource cancellationTokenSource, Queue.Queue<TBlock> queue)
-            : base(cancellationTokenSource, queue)
+        public PayloadAsyncLimitableCollectionGetOneOrMoreFromStart(CancellationTokenSource cancellationTokenSource, AsyncLimitableCollection<T> asyncLimitableCollection)
+            : base(cancellationTokenSource, asyncLimitableCollection)
         {
         }
 
@@ -23,7 +22,7 @@ namespace compressor.Processor.Payload
             {
                 try
                 {
-                    var takingAyncResult = Queue.BeginTake(CancellationTokenSource.Token, state: maxBlocksToGet);
+                    var takingAyncResult = AsyncLimitableCollection.BeginTake(CancellationTokenSource.Token, state: maxBlocksToGet);
                     return new PayloadResultContinuationPending(takingAyncResult);
                 }
                 catch(OperationCanceledException)
@@ -32,7 +31,7 @@ namespace compressor.Processor.Payload
                 }
                 catch(InvalidOperationException)
                 {
-                    if(Queue.IsCompleted)
+                    if(AsyncLimitableCollection.IsCompleted)
                     {
                         return new PayloadResultContinuationPendingDoneNothing();
                     }

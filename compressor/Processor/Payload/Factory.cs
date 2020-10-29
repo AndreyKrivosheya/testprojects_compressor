@@ -12,118 +12,48 @@ namespace compressor.Processor.Payload
         {
             this.CancellationTokenSource = cancellationTokenSource;
             this.FactoryBasic = new Common.Payload.Basic.Factory(this.CancellationTokenSource);
+            this.FactoryCollections = new Common.Payload.Collections.Factory(this.CancellationTokenSource);
         }
 
         readonly CancellationTokenSource CancellationTokenSource;
 
         readonly Common.Payload.Basic.Factory FactoryBasic;
+        readonly Common.Payload.Collections.Factory FactoryCollections;
 
-        public PayloadQueueAddToStart<BlockToProcess> QueueAddToQueueToProcessStart(QueueToProcess queue)
-        {
-            return new PayloadQueueAddToStart<BlockToProcess>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueAddToFinish<BlockToProcess> QueueAddToQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueAddToFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
         public Common.Payload.Payload QueueAddToQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.Chain(
-                QueueAddToQueueToProcessStart(queue),
-                QueueAddToQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
-            );
-        }
-
-        public PayloadQueueAddToStart<BlockToWrite> QueueAddToQueueToWriteStart(QueueToWrite queue)
-        {
-            return new PayloadQueueAddToStart<BlockToWrite>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueAddToFinish<BlockToWrite> QueueAddToQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueAddToFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return FactoryCollections.AsyncLimitableCollectionAddTo<BlockToProcess>(queue, queueOperationTimeoutMilliseconds);
         }
         public Common.Payload.Payload QueueAddToQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.Chain(
-                QueueAddToQueueToWriteStart(queue),
-                QueueAddToQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
-            );
+            return FactoryCollections.AsyncLimitableCollectionAddTo<BlockToWrite>(queue, queueOperationTimeoutMilliseconds);
         }
 
-        public PayloadQueueCompleteAdding<BlockToProcess> QueueCompleteAddingQueueToProcess(QueueToProcess queue)
+        public Common.Payload.Payload QueueCompleteAddingQueueToProcess(QueueToProcess queue)
         {
-            return new PayloadQueueCompleteAdding<BlockToProcess>(CancellationTokenSource, queue);
+            return FactoryCollections.AsyncLimitableCollectionCompleteAdding<BlockToProcess>(queue);
+        }
+        public Common.Payload.Payload QueueCompleteAddingQueueToWrite(QueueToWrite queue)
+        {
+            return FactoryCollections.AsyncLimitableCollectionCompleteAdding<BlockToWrite>(queue);
         }
 
-        public PayloadQueueCompleteAdding<BlockToWrite> QueueCompleteAddingQueueToWrite(QueueToWrite queue)
-        {
-            return new PayloadQueueCompleteAdding<BlockToWrite>(CancellationTokenSource, queue);
-        }
-
-        public PayloadQueueGetOneFromStart<BlockToProcess> QueueGetOneFromQueueToProcessStart(QueueToProcess queue)
-        {
-            return new PayloadQueueGetOneFromStart<BlockToProcess>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueGetOneFromFinish<BlockToProcess> QueueGetOneFromQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneFromFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
         public Common.Payload.Payload QueueGetOneFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.Chain( 
-                QueueGetOneFromQueueToProcessStart(queue),
-                QueueGetOneFromQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
-            );
-        }
-        
-        public PayloadQueueGetOneFromStart<BlockToWrite> QueueGetOneFromQueueToWriteStart(QueueToWrite queue)
-        {
-            return new PayloadQueueGetOneFromStart<BlockToWrite>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueGetOneFromFinish<BlockToWrite> QueueGetOneFromQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneFromFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return FactoryCollections.AsyncLimitableCollectionGetOneFrom<BlockToProcess>(queue, queueOperationTimeoutMilliseconds);
         }
         public Common.Payload.Payload QueueGetOneFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
         {
-            return FactoryBasic.Chain(
-                QueueGetOneFromQueueToWriteStart(queue),
-                QueueGetOneFromQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
-            );
+            return FactoryCollections.AsyncLimitableCollectionGetOneFrom<BlockToWrite>(queue, queueOperationTimeoutMilliseconds);
         }
 
-        public PayloadQueueGetOneOrMoreFromStart<BlockToProcess> QueueGetOneOrMoreFromQueueToProcessStart(QueueToProcess queue)
-        {
-            return new PayloadQueueGetOneOrMoreFromStart<BlockToProcess>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueGetOneOrMoreFromFinish<BlockToProcess> QueueGetOneOrMoreFromQueueToProcessFinish(QueueToProcess queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneOrMoreFromFinish<BlockToProcess>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
-        }
         public Common.Payload.Payload QueueGetOneOrMoreFromQueueToProcess(QueueToProcess queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
         {
-            return FactoryBasic.Chain( 
-                FactoryBasic.ReturnValue(maxBlocksToGet),
-                QueueGetOneOrMoreFromQueueToProcessStart(queue),
-                QueueGetOneOrMoreFromQueueToProcessFinish(queue, queueOperationTimeoutMilliseconds)
-            );
-        }
-        
-        public PayloadQueueGetOneOrMoreFromStart<BlockToWrite> QueueGetOneOrMoreFromQueueToWriteStart(QueueToWrite queue)
-        {
-            return new PayloadQueueGetOneOrMoreFromStart<BlockToWrite>(CancellationTokenSource, queue);
-        }
-        public PayloadQueueGetOneOrMoreFromFinish<BlockToWrite> QueueGetOneOrMoreFromQueueToWriteFinish(QueueToWrite queue, int queueOperationTimeoutMilliseconds)
-        {
-            return new PayloadQueueGetOneOrMoreFromFinish<BlockToWrite>(CancellationTokenSource, queue, queueOperationTimeoutMilliseconds);
+            return FactoryCollections.AsyncLimitableCollectionGetOneOrMoreFrom<BlockToProcess>(queue, queueOperationTimeoutMilliseconds, maxBlocksToGet);
         }
         public Common.Payload.Payload QueueGetOneOrMoreFromQueueToWrite(QueueToWrite queue, int queueOperationTimeoutMilliseconds, int maxBlocksToGet)
         {
-            return FactoryBasic.Chain(
-                FactoryBasic.ReturnValue(maxBlocksToGet),
-                QueueGetOneOrMoreFromQueueToWriteStart(queue),
-                QueueGetOneOrMoreFromQueueToWriteFinish(queue, queueOperationTimeoutMilliseconds)
-            );
+            return FactoryCollections.AsyncLimitableCollectionGetOneOrMoreFrom<BlockToWrite>(queue, queueOperationTimeoutMilliseconds, maxBlocksToGet);
         }
         
         public PayloadProcessCompress ProcessCompress()
