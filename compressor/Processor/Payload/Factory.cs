@@ -86,19 +86,19 @@ namespace compressor.Processor.Payload
             return new PayloadBlocksToWriteToBytesBinary(CancellationTokenSource);
         }
 
-        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart()
+        public PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart()
         {
-            return new PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart(CancellationTokenSource);
+            return new PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart(CancellationTokenSource);
         }
-        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(int waitTimeout)
+        public PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish(int waitTimeout)
         {
-            return new PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(CancellationTokenSource, waitTimeout);
+            return new PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish(CancellationTokenSource, waitTimeout);
         }
-        public Common.Payload.Payload BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(int waitTimeout)
+        public Common.Payload.Payload BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWrite(int waitTimeout)
         {
             return FactoryBasic.Chain(
-                BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart(),
-                BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(waitTimeout)
+                BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart(),
+                BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish(waitTimeout)
             );
         }
     }

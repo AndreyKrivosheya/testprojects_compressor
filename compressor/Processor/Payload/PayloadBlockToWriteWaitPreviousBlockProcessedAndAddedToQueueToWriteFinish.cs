@@ -7,9 +7,9 @@ using compressor.Processor.Queue;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish: Common.Payload.Payload
+    class PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish: Common.Payload.Payload
     {
-        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(CancellationTokenSource cancellationTokenSource, int waitTimeout)
+        public PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteFinish(CancellationTokenSource cancellationTokenSource, int waitTimeout)
             : base(cancellationTokenSource)
         {
             this.Timeout = waitTimeout;
@@ -24,7 +24,7 @@ namespace compressor.Processor.Payload
                     whenCompleted: (completedWaitingAsyncResult) =>
                     {
                         var blockToWait = (BlockToWrite)completedWaitingAsyncResult.AsyncState;
-                        blockToWait.EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(completedWaitingAsyncResult);
+                        blockToWait.EndWaitPreviousBlockProcessedAndAddedToQueueToWrite(completedWaitingAsyncResult);
                         return new PayloadResultContinuationPending(blockToWait);
                     }
                 )

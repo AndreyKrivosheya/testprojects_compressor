@@ -36,7 +36,7 @@ namespace compressor.Processor
                     FactoryBasic.ChainRepeatable(
                         FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
                         CreateProcessPayload(),
-                        FactoryProcessor.BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(0),
+                        FactoryProcessor.BlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWrite(0),
                         payloadTrackLastBlockToAddToQueueToWrite,
                         FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
                     ),

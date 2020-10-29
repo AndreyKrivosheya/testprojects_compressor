@@ -14,11 +14,11 @@ namespace compressor.Processor.Queue
                 {
                     this.Previous = previous;
                     this.Previous.Last = false;
-                    this.A = this.Previous.A + 1;
+                    //this.A = this.Previous.A + 1;
                 }
                 else
                 {
-                    this.A = 0;
+                    //this.A = 0;
                 }
             }
             public AwaiterForAddedToQueue()
@@ -26,7 +26,7 @@ namespace compressor.Processor.Queue
             {
             }
 
-            readonly int A;
+            //readonly int A;
 
             AwaiterForAddedToQueue Previous = null;
 
@@ -47,39 +47,39 @@ namespace compressor.Processor.Queue
                 ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy.SetAllToBeCompletedWithoutProcessorAsCompleted(false);
             }
 
-            readonly Common.Processors ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite = new Common.Processors();
+            readonly Common.Processors ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite = new Common.Processors();
 
-            public IAsyncResult BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
+            public IAsyncResult BeginWaitPreviousBlockProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
                 lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
                 {
                     var previous = Previous;
                     if(previous == null)
                     {
-                        return ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
+                        return ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
                     }
                     else
                     {
-                        var asyncResultToBeCompleted = ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
+                        var asyncResultToBeCompleted = ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
                         // spin off wait for previsous is notified added
-                        previous.BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback:
-                            (ar) => {
-                                previous.EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(ar);
-                                ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
-                            });
-
+                        previous.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback:
+                           (ar) => {
+                               previous.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
+                               ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
+                           });
+                        
                         return asyncResultToBeCompleted;
                     }
                 }
             }
-            public IAsyncResult BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(AsyncCallback asyncCallback = null, object state = null)
+            public IAsyncResult BeginWaitPreviousBlockProcessedAndAddedToQueueToWrite(AsyncCallback asyncCallback = null, object state = null)
             {
-                return BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken.None, asyncCallback, state);
+                return BeginWaitPreviousBlockProcessedAndAddedToQueueToWrite(CancellationToken.None, asyncCallback, state);
             }
 
-            public void EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
+            public void EndWaitPreviousBlockProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
             {
-                ProcessorsWaitAllPreviousBlocksProcessedAddedToQueueToWrite.EndRun(waitingAsyncResult,
+                ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.EndRun(waitingAsyncResult,
                     onAsyncResultNotFromThisProcessors: () => {
                         throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite() method on this block");
                     }
@@ -112,55 +112,6 @@ namespace compressor.Processor.Queue
                 ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.EndRun(waitingAsyncResult,
                     onAsyncResultNotFromThisProcessors: () => {
                         throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitThisBlockProcessedAndAddedToQueueToWrite() method on this block");
-                    }
-                );
-            }
-
-            readonly Common.Processors ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite = new Common.Processors();
-
-            public IAsyncResult BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
-            {
-                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
-                {
-                    var previous = Previous;
-                    if(previous == null)
-                    {
-                        var asyncResultToBeCompleted = ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
-                        // spin off waiting for this to be notified added
-                        this.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
-                            this.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
-                            ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
-                        });
-
-                        return asyncResultToBeCompleted;
-                    }
-                    else
-                    {
-                        var asyncResultToBeCompleted = ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
-                        // spin off waiting for all previous to be notified added
-                        previous.BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
-                            previous.EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(ar);
-                            // spin off waiting for this to be notified added
-                            this.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, (ar) => {
-                                this.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
-                                ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
-                            });
-                        });
-
-                        return asyncResultToBeCompleted;
-                    }
-                }
-            }
-            public IAsyncResult BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(AsyncCallback asyncCallback = null, object state = null)
-            {
-                return BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(CancellationToken.None, asyncCallback, state);
-            }
-
-            public void EndWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
-            {
-                ProcessorsWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite.EndRun(waitingAsyncResult,
-                    onAsyncResultNotFromThisProcessors: () => {
-                        throw new InvalidOperationException("End of asynchronius wait request did not originate from a BeginWaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite() method on this block");
                     }
                 );
             }

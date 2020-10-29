@@ -7,9 +7,9 @@ using compressor.Processor.Settings;
 
 namespace compressor.Processor.Payload
 {
-    class PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart : Common.Payload.Payload
+    class PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart : Common.Payload.Payload
     {
-        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart(CancellationTokenSource cancellationTokenSource)
+        public PayloadBlockToWriteWaitPreviousBlockProcessedAndAddedToQueueToWriteStart(CancellationTokenSource cancellationTokenSource)
             : base(cancellationTokenSource)
         {
         }
@@ -19,7 +19,7 @@ namespace compressor.Processor.Payload
             return parameter.VerifyNotNullConvertAndRunUnsafe(
             (BlockToWrite blockToWait) => 
             {
-                var waitingAyncResult = blockToWait.BeginWaitAllPreviousBlocksProcessedAndAddedToQueue(CancellationTokenSource.Token, state: blockToWait);
+                var waitingAyncResult = blockToWait.BeginWaitPreviousBlockProcessedAndAddedToQueue(CancellationTokenSource.Token, state: blockToWait);
                 return new PayloadResultContinuationPending(waitingAyncResult);
             });
         }
