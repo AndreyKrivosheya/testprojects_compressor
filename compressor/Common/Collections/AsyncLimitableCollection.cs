@@ -63,17 +63,17 @@ namespace compressor.Common.Collections
             }
         }
 
-        readonly Processors ProcessorsAddToQueue = new Processors();
+        readonly Processors ProcessorsAddToCollection = new Processors();
 
         public IAsyncResult BeginAdd(T item, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
             if(Implementation.TryAdd(item, 0))
             {
-                return ProcessorsAddToQueue.BeginRunCompleted(asyncCallback, state);
+                return ProcessorsAddToCollection.BeginRunCompleted(asyncCallback, state);
             }
             else
             {
-                return ProcessorsAddToQueue.BeginRun(() => {
+                return ProcessorsAddToCollection.BeginRun(() => {
                     if(!Implementation.TryAdd(item, Timeout.Infinite, cancellationToken))
                     {
                         if(cancellationToken.IsCancellationRequested)
@@ -84,11 +84,11 @@ namespace compressor.Common.Collections
                         {
                             if(Implementation.IsAddingCompleted)
                             {
-                                throw new InvalidOperationException("Can't add item to queue completed for adding");
+                                throw new InvalidOperationException("Can't add item to collection completed for adding");
                             }
                             else
                             {
-                                // infinite wait for item to be added is finished but not canceled and queue is not completed for adding
+                                // infinite wait for item to be added is finished but not canceled and collection is not completed for adding
                                 throw new NotSupportedException("Infinite wait for item to be added to collection is finished but not canceled");
                             }
                         }
@@ -103,9 +103,9 @@ namespace compressor.Common.Collections
 
         public void EndAdd(IAsyncResult addingAsyncResult)
         {
-            ProcessorsAddToQueue.EndRun(addingAsyncResult,
+            ProcessorsAddToCollection.EndRun(addingAsyncResult,
                 onAsyncResultNotFromThisProcessors: () => {
-                    throw new InvalidOperationException("End of asynchronius add request did not originate from a BeginAdd() method on the current queue");
+                    throw new InvalidOperationException("End of asynchronius add request did not originate from a BeginAdd() method on this collection");
                 }
             );
         }
@@ -131,18 +131,18 @@ namespace compressor.Common.Collections
             }
         }
 
-        readonly Processors<T> ProcessorsTakeFromQueue = new Processors<T>();
+        readonly Processors<T> ProcessorsTakeFromCollection = new Processors<T>();
 
         public IAsyncResult BeginTake(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
             T item;
             if(Implementation.TryTake(out item, 0))
             {
-                return ProcessorsTakeFromQueue.BeginRunCompleted(item, asyncCallback, state);
+                return ProcessorsTakeFromCollection.BeginRunCompleted(item, asyncCallback, state);
             }
             else
             {
-                return ProcessorsTakeFromQueue.BeginRun(() => {
+                return ProcessorsTakeFromCollection.BeginRun(() => {
                     T item;
                     if(!Implementation.TryTake(out item, Timeout.Infinite, cancellationToken))
                     {
@@ -154,11 +154,11 @@ namespace compressor.Common.Collections
                         {
                             if(Implementation.IsCompleted)
                             {
-                                throw new InvalidOperationException("Nothing to get out of empty queue completed for adding");
+                                throw new InvalidOperationException("Nothing to get out of empty collection completed for adding");
                             }
                             else
                             {
-                                // infinite wait for item to be taken is finished but not canceled and queue is not empty
+                                // infinite wait for item to be taken is finished but not canceled and collection is not empty
                                 throw new NotSupportedException("Infinite wait for item to be taken from collection is finished but not canceled");
                             }
                         }
@@ -175,9 +175,9 @@ namespace compressor.Common.Collections
 
         public T EndTake(IAsyncResult takingAsyncResult)
         {
-            return ProcessorsTakeFromQueue.EndRun(takingAsyncResult,
+            return ProcessorsTakeFromCollection.EndRun(takingAsyncResult,
                 onAsyncResultNotFromThisProcessors: () => {
-                    throw new InvalidOperationException("End of asynchronius take request did not originate from a BeginTake() method on the current queue");
+                    throw new InvalidOperationException("End of asynchronius take request did not originate from a BeginTake() method on this collection");
                 }
             );
         }
