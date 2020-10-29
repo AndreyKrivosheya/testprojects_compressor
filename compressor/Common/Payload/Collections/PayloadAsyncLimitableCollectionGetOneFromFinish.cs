@@ -19,38 +19,29 @@ namespace compressor.Common.Payload.Collections
         
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult takingAsyncResult) =>
-            {
-                return takingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult takingAsyncResult) =>
+                takingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (completedTakingAsyncResult) =>
+                    {
+                        try
                         {
-                            try
+                            var blockTaken = AsyncLimitableCollection.EndTake(completedTakingAsyncResult);
+                            return new PayloadResultContinuationPending(blockTaken);
+                        }
+                        catch(InvalidOperationException)
+                        {
+                            if(AsyncLimitableCollection.IsCompleted)
                             {
-                                var blockTaken = AsyncLimitableCollection.EndTake(completedAsyncResult);
-                                return new PayloadResultContinuationPending(blockTaken);
+                                return new PayloadResultSucceeded();
                             }
-                            catch(OperationCanceledException)
+                            else
                             {
-                                return new PayloadResultCanceled();
-                            }
-                            catch(InvalidOperationException)
-                            {
-                                if(AsyncLimitableCollection.IsCompleted)
-                                {
-                                    return new PayloadResultSucceeded();
-                                }
-                                else
-                                {
-                                    throw;
-                                }
+                                throw;
                             }
                         }
-                );
-            });
+                    }
+                )
+            );
         }
     }
 }

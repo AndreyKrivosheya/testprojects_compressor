@@ -66,7 +66,7 @@ namespace compressor.Common.Payload.Streams
                 }
                 else
                 {
-                    return new PayloadResultContinuationPendingDoneNothing();
+                    return new PayloadResultContinuationPending();
                 }
             }
         }

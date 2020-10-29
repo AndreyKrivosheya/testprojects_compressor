@@ -21,10 +21,6 @@ namespace compressor.Common.Payload.Collections
                 var takingAyncResult = AsyncLimitableCollection.BeginTake(CancellationTokenSource.Token);
                 return new PayloadResultContinuationPending(takingAyncResult);
             }
-            catch(OperationCanceledException)
-            {
-                return new PayloadResultCanceled();
-            }
             catch(InvalidOperationException)
             {
                 if(!AsyncLimitableCollection.IsCompleted)

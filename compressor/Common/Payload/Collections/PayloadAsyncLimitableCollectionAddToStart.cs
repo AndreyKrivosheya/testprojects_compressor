@@ -24,17 +24,11 @@ namespace compressor.Common.Payload.Collections
                     var addingAyncResult = AsyncLimitableCollection.BeginAdd(itemToAdd, CancellationTokenSource.Token);
                     return new PayloadResultContinuationPending(addingAyncResult);
                 }
-                catch(OperationCanceledException)
-                {
-                    return new PayloadResultCanceled();
-                }
                 catch(InvalidOperationException)
                 {
                     if(AsyncLimitableCollection.IsAddingCompleted)
                     {
-                        // something wrong: queue is closed for additions, but there's block outstanding
-                        // probably there's an exception on another worker thread
-                        return new PayloadResultSucceeded();
+                        throw new NotSupportedException("Adding to collection was closed prior to adding last block(s)");
                     }
                     else
                     {

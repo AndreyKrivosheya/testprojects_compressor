@@ -17,16 +17,11 @@ namespace compressor.Common.Payload.Streams
         protected abstract PayloadResult RunUnsafe(IAsyncResult completedReadingAsyncResult);
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult readingAsyncResult) =>
-            {
-                return readingAsyncResult.WaitCompleted(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) => RunUnsafe(completedAsyncResult)
-                );
-            });
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult readingAsyncResult) =>
+                readingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (completedReadingAsyncResult) => RunUnsafe(completedReadingAsyncResult)
+                )
+            );
         }
     }
 }

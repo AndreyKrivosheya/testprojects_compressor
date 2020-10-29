@@ -19,21 +19,16 @@ namespace compressor.Processor.Payload
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult waitingAsyncResult) =>
-            {
-                return waitingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) =>
-                        {
-                            var blockToWait = (BlockToWrite)completedAsyncResult.AsyncState;
-                            blockToWait.EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(completedAsyncResult);
-                            return new PayloadResultContinuationPending(blockToWait);
-                        }
-                );
-            });
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult waitingAsyncResult) =>
+                waitingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (completedWaitingAsyncResult) =>
+                    {
+                        var blockToWait = (BlockToWrite)completedWaitingAsyncResult.AsyncState;
+                        blockToWait.EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(completedWaitingAsyncResult);
+                        return new PayloadResultContinuationPending(blockToWait);
+                    }
+                )
+            );
         }
     }
 }

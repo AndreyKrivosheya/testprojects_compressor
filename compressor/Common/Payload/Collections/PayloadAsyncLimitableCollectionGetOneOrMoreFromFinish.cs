@@ -20,110 +20,96 @@ namespace compressor.Common.Payload.Collections
         
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult takingAsyncResult) =>
-            {
-                return takingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult takingAsyncResult) =>
+                takingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (completedTakingAsyncResult) =>
+                    {
+                        var maxBlocksToGet = (int)completedTakingAsyncResult.AsyncState;
+                        var blocksFromQueue = new List<T>(Math.Min(1, maxBlocksToGet));
+                        while(blocksFromQueue.Count < blocksFromQueue.Capacity)
                         {
-                            var maxBlocksToGet = (int)completedAsyncResult.AsyncState;
-                            var blocksFromQueue = new List<T>(Math.Min(1, maxBlocksToGet));
-                            while(blocksFromQueue.Count < blocksFromQueue.Capacity)
+                            if(blocksFromQueue.Count == 0 )
                             {
-                                if(blocksFromQueue.Count == 0 )
+                                try
                                 {
-                                    try
-                                    {
-                                        var blockTaken = AsyncLimitableCollection.EndTake(completedAsyncResult);
-                                        blocksFromQueue.Add(blockTaken);
-                                        continue;
-                                    }
-                                    catch(OperationCanceledException)
-                                    {
-                                        return new PayloadResultCanceled();
-                                    }
-                                    catch(InvalidOperationException)
-                                    {
-                                        if(AsyncLimitableCollection.IsCompleted)
-                                        {
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            throw;
-                                        }
-                                    }
+                                    var blockTaken = AsyncLimitableCollection.EndTake(completedTakingAsyncResult);
+                                    blocksFromQueue.Add(blockTaken);
+                                    continue;
                                 }
-                                else
+                                catch(InvalidOperationException)
                                 {
-                                    if(AsyncLimitableCollection.Count < 1)
+                                    if(AsyncLimitableCollection.IsCompleted)
                                     {
                                         break;
                                     }
                                     else
                                     {
-                                        using(var cancellationForTakeIfNotCompletedSynchroniously = new CancellationTokenSource())
+                                        throw;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if(AsyncLimitableCollection.Count < 1)
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    using(var cancellationForGettingMoreTheOneItemIfNotCompletedSynchroniously = new CancellationTokenSource())
+                                    {
+                                        using(var cancellationCombined = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token, cancellationForGettingMoreTheOneItemIfNotCompletedSynchroniously.Token))
                                         {
-                                            using(var cancellationCombined = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token, cancellationForTakeIfNotCompletedSynchroniously.Token))
+                                            // try taking item expecting it be already available
+                                            IAsyncResult asyncResultGettingMoreThenOneItem;
                                             {
-                                                // try taking item expecting it be already available
-                                                IAsyncResult asyncResultGettingMoreThenOneItem;
+                                                try
                                                 {
-                                                    try
+                                                    asyncResultGettingMoreThenOneItem = AsyncLimitableCollection.BeginTake(cancellationCombined.Token);
+                                                }
+                                                catch(InvalidOperationException)
+                                                {
+                                                    if(AsyncLimitableCollection.IsCompleted)
                                                     {
-                                                        asyncResultGettingMoreThenOneItem = AsyncLimitableCollection.BeginTake(cancellationCombined.Token);
+                                                        break;
                                                     }
-                                                    catch(OperationCanceledException)
-                                                    {
-                                                        return new PayloadResultCanceled();
-                                                    }
-                                                    catch(InvalidOperationException)
-                                                    {
-                                                        if(AsyncLimitableCollection.IsCompleted)
-                                                        {
-                                                            break;
-                                                        }
 
+                                                    throw;
+                                                }
+                                            }
+                                            // if item is not available (and taking didn't completed in BeginTake) cancel taking
+                                            if(!asyncResultGettingMoreThenOneItem.IsCompleted)
+                                            {
+                                                cancellationForGettingMoreTheOneItemIfNotCompletedSynchroniously.Cancel();
+                                            }
+                                            // end taking item to either get item or canceled execption
+                                            {
+                                                try
+                                                {
+                                                    var blockTaken = AsyncLimitableCollection.EndTake(asyncResultGettingMoreThenOneItem);
+                                                    blocksFromQueue.Add(blockTaken);
+                                                    continue;
+                                                }
+                                                catch(OperationCanceledException)
+                                                {
+                                                    if(cancellationForGettingMoreTheOneItemIfNotCompletedSynchroniously.IsCancellationRequested)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else
+                                                    {
                                                         throw;
                                                     }
                                                 }
-                                                // if item is not available (and taking didn't completed in BeginTake) cancel taking
-                                                if(!asyncResultGettingMoreThenOneItem.IsCompleted)
+                                                catch(InvalidOperationException)
                                                 {
-                                                    cancellationForTakeIfNotCompletedSynchroniously.Cancel();
-                                                }
-                                                // end taking item to either get item or canceled execption
-                                                {
-                                                    try
+                                                    if(AsyncLimitableCollection.IsCompleted)
                                                     {
-                                                        var blockTaken = AsyncLimitableCollection.EndTake(asyncResultGettingMoreThenOneItem);
-                                                        blocksFromQueue.Add(blockTaken);
-                                                        continue;
+                                                        break;
                                                     }
-                                                    catch(OperationCanceledException)
+                                                    else
                                                     {
-                                                        if(cancellationForTakeIfNotCompletedSynchroniously.IsCancellationRequested)
-                                                        {
-                                                            break;
-                                                        }
-                                                        else
-                                                        {
-                                                            return new PayloadResultCanceled();
-                                                        }
-                                                    }
-                                                    catch(InvalidOperationException)
-                                                    {
-                                                        if(AsyncLimitableCollection.IsCompleted)
-                                                        {
-                                                            break;
-                                                        }
-                                                        else
-                                                        {
-                                                            throw;
-                                                        }
+                                                        throw;
                                                     }
                                                 }
                                             }
@@ -131,23 +117,24 @@ namespace compressor.Common.Payload.Collections
                                     }
                                 }
                             }
-
-                            if(blocksFromQueue.Count > 0)
-                            {
-                                return new PayloadResultContinuationPending(blocksFromQueue);
-                            }
-                            else
-                            {
-                                if(AsyncLimitableCollection.IsCompleted)
-                                {
-                                    return new PayloadResultSucceeded();
-                                }
-
-                                return new PayloadResultContinuationPendingDoneNothing();
-                            }
                         }
-                );
-            });
+
+                        if(blocksFromQueue.Count > 0)
+                        {
+                            return new PayloadResultContinuationPending(blocksFromQueue);
+                        }
+                        else
+                        {
+                            if(AsyncLimitableCollection.IsCompleted)
+                            {
+                                return new PayloadResultSucceeded();
+                            }
+
+                            return new PayloadResultContinuationPendingDoneNothing();
+                        }
+                    }
+                )
+            );
         }
     }
 }

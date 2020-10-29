@@ -13,7 +13,7 @@ namespace compressor.Common.Payload.Streams
             this.ExceptionProducer = exceptionProducer;
             if(this.ExceptionProducer == null)
             {
-                this.ExceptionProducer = (e) => null;
+                this.ExceptionProducer = (e) => e;
             }
         }
 
@@ -22,24 +22,21 @@ namespace compressor.Common.Payload.Streams
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult writingAsyncResult) =>
-            {
-                return writingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult writingAsyncResult) =>
+                writingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (writingCompletedAsyncResult) =>
+                    {
+                        try
                         {
-                            try
+                            Stream.EndWrite(writingCompletedAsyncResult);
+                            return new PayloadResultContinuationPending();
+                        }
+                        catch(Exception e)
+                        {
+                            var eNew = ExceptionProducer(e);
+                            if(eNew != null)
                             {
-                                Stream.EndWrite(completedAsyncResult);
-                                return new PayloadResultContinuationPending();
-                            }
-                            catch(Exception e)
-                            {
-                                var eNew = ExceptionProducer(e);
-                                if(eNew != null)
+                                if(!object.ReferenceEquals(eNew, e))
                                 {
                                     throw eNew;
                                 }
@@ -48,9 +45,14 @@ namespace compressor.Common.Payload.Streams
                                     throw;
                                 }
                             }
+                            else
+                            {
+                                return new PayloadResultContinuationPending();
+                            }
                         }
-                );
-            });
+                    }
+                )
+            );
         }
     }
 }

@@ -19,40 +19,28 @@ namespace compressor.Common.Payload.Collections
         
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe(
-            (IAsyncResult addingAsyncResult) =>
-            {
-                return addingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whileWaitTimedOut:
-                        (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
-                    whenCompleted:
-                        (completedAsyncResult) =>
+            return parameter.VerifyNotNullConvertAndRunUnsafe((IAsyncResult addingAsyncResult) =>
+                addingAsyncResult.WaitCompletedAndRunUnsafe(Timeout, CancellationTokenSource.Token,
+                    whenCompleted: (completedAddingAsyncResult) =>
+                    {
+                        try
                         {
-                            try
+                            AsyncLimitableCollection.EndAdd(completedAddingAsyncResult);
+                            return new PayloadResultContinuationPending();
+                        }
+                        catch(InvalidOperationException)
+                        {
+                            if(AsyncLimitableCollection.IsAddingCompleted)
                             {
-                                AsyncLimitableCollection.EndAdd(completedAsyncResult);
-                                return new PayloadResultContinuationPending();
+                                throw new NotSupportedException("Adding to collection was closed prior to adding last block(s)");
                             }
-                            catch(OperationCanceledException)
+                            else
                             {
-                                return new PayloadResultCanceled();
-                            }
-                            catch(InvalidOperationException)
-                            {
-                                if(AsyncLimitableCollection.IsAddingCompleted)
-                                {
-                                    // something wrong: AsyncLimitableCollection is closed for additions, but there's block outstanding
-                                    // probably there's an exception on another worker thread
-                                    return new PayloadResultSucceeded();
-                                }
-                                else
-                                {
-                                    throw;
-                                }
+                                throw;
                             }
                         }
-                );
-            });
+                    }
+            ));
         }
     }
 }
