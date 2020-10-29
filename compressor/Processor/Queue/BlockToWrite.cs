@@ -23,22 +23,18 @@ namespace compressor.Processor.Queue
             Awaiter.NotifyProcessedAndAddedToQueueToWrite();
         }
 
-        public bool WaitAllPreviousBlocksProcessedAndAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+        public IAsyncResult BeginWaitAllPreviousBlocksProcessedAndAddedToQueue(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            return Awaiter.WaitAllPreviousBlocksProcessedAddedToQueueToWrite(millisecondsTimeout, cancellationToken);
+            return Awaiter.BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback, state);
         }
-        public bool WaitAllPreviousBlocksProcessedAndAddedToQueue(CancellationToken cancellationToken)
+        public IAsyncResult BeginWaitAllPreviousBlocksProcessedAndAddedToQueue(AsyncCallback asyncCallback = null, object state = null)
         {
-            return Awaiter.WaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken);
+            return Awaiter.BeginWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(asyncCallback, state);
         }
 
-        public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueue(int millisecondsTimeout, CancellationToken cancellationToken)
+        public void EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(IAsyncResult waitingAsyncResult)
         {
-            return Awaiter.WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(millisecondsTimeout, cancellationToken);
-        }
-        public bool WaitThisAndAllPreviousBlocksProcessedAndAddedToQueue(CancellationToken cancellationToken)
-        {
-            return Awaiter.WaitThisAndAllPreviousBlocksProcessedAndAddedToQueueToWrite(cancellationToken);
+            Awaiter.EndWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(waitingAsyncResult);
         }
     }
 }

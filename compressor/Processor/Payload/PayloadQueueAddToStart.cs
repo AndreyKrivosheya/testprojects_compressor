@@ -20,43 +20,26 @@ namespace compressor.Processor.Payload
             return parameter.VerifyNotNullConvertAndRunUnsafe(
             (TBlock blockToAdd) => 
             {
-                bool couldAdd = true;
-                var blockToAddAsBlockToWrite = blockToAdd as BlockToWrite;
-                if(blockToAddAsBlockToWrite != null)
+                try
                 {
-                    if(!blockToAddAsBlockToWrite.WaitAllPreviousBlocksProcessedAndAddedToQueue(0, CancellationTokenSource.Token))
-                    {
-                        couldAdd = false;
-                    }
+                    var addingAyncResult = Queue.BeginAdd(blockToAdd, CancellationTokenSource.Token);
+                    return new PayloadResultContinuationPending(addingAyncResult);
                 }
-
-                if(!couldAdd)
+                catch(OperationCanceledException)
                 {
-                    return new PayloadResultContinuationPendingDoneNothing();
+                    return new PayloadResultCanceled();
                 }
-                else
+                catch(InvalidOperationException)
                 {
-                    try
+                    if(Queue.IsAddingCompleted)
                     {
-                        var addingAyncResult = Queue.BeginAdd(blockToAdd, CancellationTokenSource.Token);
-                        return new PayloadResultContinuationPending(addingAyncResult);
+                        // something wrong: queue is closed for additions, but there's block outstanding
+                        // probably there's an exception on another worker thread
+                        return new PayloadResultSucceeded();
                     }
-                    catch(OperationCanceledException)
+                    else
                     {
-                        return new PayloadResultCanceled();
-                    }
-                    catch(InvalidOperationException)
-                    {
-                        if(Queue.IsAddingCompleted)
-                        {
-                            // something wrong: queue is closed for additions, but there's block outstanding
-                            // probably there's an exception on another worker thread
-                            return new PayloadResultSucceeded();
-                        }
-                        else
-                        {
-                            throw;
-                        }
+                        throw;
                     }
                 }
             });

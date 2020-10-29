@@ -23,7 +23,7 @@ namespace compressor.Processor.Payload
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
             Queue.CompleteAdding();
-            return new PayloadResultSucceeded();
+            return new PayloadResultContinuationPending();
         }
     }
 }

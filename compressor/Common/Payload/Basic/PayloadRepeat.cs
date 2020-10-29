@@ -33,7 +33,7 @@ namespace compressor.Common.Payload.Basic
                         if(awaitables.Any())
                         {
                             var awaitablesForDebug = awaitables.ToArray();
-                            WaitHandle.WaitAny(Enumerable.Concat(new [] { CancellationTokenSource.Token.WaitHandle }, awaitables).ToArray(), 100);
+                            WaitHandle.WaitAny(Enumerable.Concat(new [] { CancellationTokenSource.Token.WaitHandle }, awaitables).ToArray(), 10000);
                         }
                         else
                         {

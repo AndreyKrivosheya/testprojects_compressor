@@ -155,5 +155,21 @@ namespace compressor.Processor.Payload
         {
             return new PayloadBlocksToWriteToBytesBinary(CancellationTokenSource);
         }
+
+        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart()
+        {
+            return new PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart(CancellationTokenSource);
+        }
+        public PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(int waitTimeout)
+        {
+            return new PayloadBlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(CancellationTokenSource, waitTimeout);
+        }
+        public Common.Payload.Payload BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(int waitTimeout)
+        {
+            return FactoryBasic.Chain(
+                BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteStart(),
+                BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWriteFinish(waitTimeout)
+            );
+        }
     }
 }
