@@ -25,13 +25,13 @@ namespace compressor.Processor.Payload
             (IAsyncResult takingAsyncResult) =>
             {
                 return takingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whenWaitTimedOut:
+                    whileWaitTimedOut:
                         (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
                     whenCompleted:
                         (completedAsyncResult) =>
                         {
                             var maxBlocksToGet = (int)completedAsyncResult.AsyncState;
-                            var blocksFromQueue = new List<TBlock>(maxBlocksToGet < 1 ? 1 : maxBlocksToGet);
+                            var blocksFromQueue = new List<TBlock>(Math.Min(1, maxBlocksToGet));
                             while(blocksFromQueue.Count < blocksFromQueue.Capacity)
                             {
                                 if(blocksFromQueue.Count == 0 )
@@ -60,64 +60,71 @@ namespace compressor.Processor.Payload
                                 }
                                 else
                                 {
-                                    using(var cancellationForTakeIfNotCompletedSynchroniously = new CancellationTokenSource())
+                                    if(Queue.Count < 1)
                                     {
-                                        using(var cancellationCombined = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token, cancellationForTakeIfNotCompletedSynchroniously.Token))
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        using(var cancellationForTakeIfNotCompletedSynchroniously = new CancellationTokenSource())
                                         {
-                                            // try taking item expecting it be already available
-                                            IAsyncResult asyncResultGettingMoreThenOneItem;
+                                            using(var cancellationCombined = CancellationTokenSource.CreateLinkedTokenSource(CancellationTokenSource.Token, cancellationForTakeIfNotCompletedSynchroniously.Token))
                                             {
-                                                try
+                                                // try taking item expecting it be already available
+                                                IAsyncResult asyncResultGettingMoreThenOneItem;
                                                 {
-                                                    asyncResultGettingMoreThenOneItem = Queue.BeginTake(cancellationCombined.Token);
-                                                }
-                                                catch(OperationCanceledException)
-                                                {
-                                                    return new PayloadResultCanceled();
-                                                }
-                                                catch(InvalidOperationException)
-                                                {
-                                                    if(Queue.IsCompleted)
+                                                    try
                                                     {
-                                                        break;
+                                                        asyncResultGettingMoreThenOneItem = Queue.BeginTake(cancellationCombined.Token);
                                                     }
-
-                                                    throw;
-                                                }
-                                            }
-                                            // if item is not available (and taking didn't completed in BeginTake) cancel taking
-                                            if(!asyncResultGettingMoreThenOneItem.IsCompleted)
-                                            {
-                                                cancellationForTakeIfNotCompletedSynchroniously.Cancel();
-                                            }
-                                            // end taking item to either get item or canceled execption
-                                            {
-                                                try
-                                                {
-                                                    var blockTaken = Queue.EndTake(asyncResultGettingMoreThenOneItem);
-                                                    blocksFromQueue.Add(blockTaken);
-                                                    continue;
-                                                }
-                                                catch(OperationCanceledException)
-                                                {
-                                                    if(cancellationForTakeIfNotCompletedSynchroniously.IsCancellationRequested)
-                                                    {
-                                                        break;
-                                                    }
-                                                    else
+                                                    catch(OperationCanceledException)
                                                     {
                                                         return new PayloadResultCanceled();
                                                     }
-                                                }
-                                                catch(InvalidOperationException)
-                                                {
-                                                    if(Queue.IsCompleted)
+                                                    catch(InvalidOperationException)
                                                     {
-                                                        break;
-                                                    }
-                                                    else
-                                                    {
+                                                        if(Queue.IsCompleted)
+                                                        {
+                                                            break;
+                                                        }
+
                                                         throw;
+                                                    }
+                                                }
+                                                // if item is not available (and taking didn't completed in BeginTake) cancel taking
+                                                if(!asyncResultGettingMoreThenOneItem.IsCompleted)
+                                                {
+                                                    cancellationForTakeIfNotCompletedSynchroniously.Cancel();
+                                                }
+                                                // end taking item to either get item or canceled execption
+                                                {
+                                                    try
+                                                    {
+                                                        var blockTaken = Queue.EndTake(asyncResultGettingMoreThenOneItem);
+                                                        blocksFromQueue.Add(blockTaken);
+                                                        continue;
+                                                    }
+                                                    catch(OperationCanceledException)
+                                                    {
+                                                        if(cancellationForTakeIfNotCompletedSynchroniously.IsCancellationRequested)
+                                                        {
+                                                            break;
+                                                        }
+                                                        else
+                                                        {
+                                                            return new PayloadResultCanceled();
+                                                        }
+                                                    }
+                                                    catch(InvalidOperationException)
+                                                    {
+                                                        if(Queue.IsCompleted)
+                                                        {
+                                                            break;
+                                                        }
+                                                        else
+                                                        {
+                                                            throw;
+                                                        }
                                                     }
                                                 }
                                             }

@@ -13,7 +13,7 @@ namespace compressor.Common
             }
         }
 
-        public static T WaitCompleted<T>(this IAsyncResult asyncResult, int waitTimeout, CancellationToken cancellationToken, Func<IAsyncResult, T> whenWaitTimedOut, Func<IAsyncResult, T> whenCompleted)
+        public static T WaitCompleted<T>(this IAsyncResult asyncResult, int waitTimeout, CancellationToken cancellationToken, Func<IAsyncResult, T> whileWaitTimedOut, Func<IAsyncResult, T> whenCompleted)
         {
             if(asyncResult.IsCompleted)
             {
@@ -26,7 +26,7 @@ namespace compressor.Common
                     switch(WaitHandle.WaitAny(new [] { asyncResult.AsyncWaitHandle, cancellationToken.WaitHandle }, waitTimeout))
                     {
                         case WaitHandle.WaitTimeout:
-                            return whenWaitTimedOut(asyncResult);
+                            return whileWaitTimedOut(asyncResult);
                         case 0:
                             return whenCompleted(asyncResult);
                         case 1:
@@ -36,7 +36,7 @@ namespace compressor.Common
                 }
                 else
                 {
-                    return whenWaitTimedOut(asyncResult);
+                    return whileWaitTimedOut(asyncResult);
                 }
             }
         }

@@ -24,7 +24,7 @@ namespace compressor.Processor.Payload
             (IAsyncResult addingAsyncResult) =>
             {
                 return addingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whenWaitTimedOut:
+                    whileWaitTimedOut:
                         (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
                     whenCompleted:
                         (completedAsyncResult) =>

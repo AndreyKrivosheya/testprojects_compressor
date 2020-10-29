@@ -22,9 +22,8 @@ namespace compressor.Processor.Payload
             return parameter.VerifyNotNullConvertAndRunUnsafe(
             (IAsyncResult waitingAsyncResult) =>
             {
-                var dummy = ((BlockToWrite)waitingAsyncResult.AsyncState);
                 return waitingAsyncResult.WaitCompleted<PayloadResult>(Timeout, CancellationTokenSource.Token,
-                    whenWaitTimedOut:
+                    whileWaitTimedOut:
                         (incompleteAsyncResult) => new PayloadResultContinuationPendingDoneNothing(),
                     whenCompleted:
                         (completedAsyncResult) =>
