@@ -44,7 +44,7 @@ namespace compressor.Common.Payload.Basic
                 throw new ArgumentNullException("condition");
             }
 
-            return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue, payloadIfFalse);
+            return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAnd(condition), payloadIfTrue, payloadIfFalse);
         }
         public PayloadConditional Conditional<T>(Func<T, bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
         {
@@ -53,7 +53,7 @@ namespace compressor.Common.Payload.Basic
                 throw new ArgumentNullException("condition");
             }
 
-            return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue, payloadIfFalse);
+            return new PayloadConditional(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAnd(condition), payloadIfTrue, payloadIfFalse);
         }
 
         public PayloadConditional Conditional(Func<bool> condition, Common.Payload.Payload payloadIfTrue = null, Common.Payload.Payload payloadIfFalse = null)
@@ -72,7 +72,7 @@ namespace compressor.Common.Payload.Basic
                 throw new ArgumentNullException("condition");
             }
 
-            return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue);
+            return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAnd(condition), payloadIfTrue);
         }
         public PayloadConditionalOnceAndForever ConditionalOnceAndForever(Func<int, bool> condition, Common.Payload.Payload payloadIfTrue)
         {
@@ -81,7 +81,7 @@ namespace compressor.Common.Payload.Basic
                 throw new ArgumentNullException("condition");
             }
 
-            return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAndTransform(condition), payloadIfTrue);
+            return new PayloadConditionalOnceAndForever(CancellationTokenSource, (parameter) => parameter.VerifyNotNullConvertAnd(condition), payloadIfTrue);
         }
 
         public PayloadConditionalOnceAndForever ConditionalOnceAndForever(Func<bool> condition, Common.Payload.Payload payloadIfTrue)
@@ -108,11 +108,20 @@ namespace compressor.Common.Payload.Basic
 
         public PayloadChain Chain(IEnumerable<Common.Payload.Payload> payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
         }
         public PayloadChain Chain(params Common.Payload.Payload[] payloads)
         {
-            return new PayloadChain(CancellationTokenSource, payloads);
+            return new PayloadChain(CancellationTokenSource, false, payloads);
+        }
+
+        public PayloadChain ChainRepeatable(IEnumerable<Common.Payload.Payload> payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
+        }
+        public PayloadChain ChainRepeatable(params Common.Payload.Payload[] payloads)
+        {
+            return new PayloadChain(CancellationTokenSource, true, payloads);
         }
 
         public PayloadRepeat Repeat(Common.Payload.Payload payload)

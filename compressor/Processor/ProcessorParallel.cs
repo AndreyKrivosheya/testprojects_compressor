@@ -4,6 +4,8 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 
+using compressor.Common;
+using compressor.Common.Threading;
 using compressor.Processor.Queue;
 using compressor.Processor.Settings;
 
@@ -30,7 +32,7 @@ namespace compressor.Processor
                     {
                         var payloadFactory = PayloadFactoryCreator(cancellationTokenSource, Settings);
                         var concurrency = Settings.MaxConcurrency - 1;
-                        var threads = new Thread[concurrency];
+                        var threads = new IAsyncResult[concurrency];
                         var threadsPayloads = new Common.Payload.Payload[concurrency];
                         var threadsErrors = new ExceptionDispatchInfo[concurrency];
 
@@ -42,7 +44,7 @@ namespace compressor.Processor
                                 // create process (compress/decompress) payload
                                 threadsPayloads[i] = payloadFactory.CreateProcess(queueToProcess, queueToWrite);
                                 // spin it off as a separate thread
-                                threads[i] = new Thread((object idxRaw) => {
+                                threads[i] = Threads.QueueAndRun((object idxRaw) => {
                                     var idx = (int)idxRaw;
                                     try
                                     {
@@ -57,8 +59,7 @@ namespace compressor.Processor
                                         System.Diagnostics.Debug.WriteLine(e);
                                         threadsErrors[idx] = ExceptionDispatchInfo.Capture(e);
                                     }
-                                }) { IsBackground = true, Name = string.Format("Processor[{0}]: Process worker", i) };
-                                threads[i].Start(i);
+                                }, state: i, name: string.Format("Processor[{0}]: Process worker", i));
                             }
                             // run reader/processor/writer
                             {
@@ -79,7 +80,7 @@ namespace compressor.Processor
                             // and wait they have finished
                             for(var i = 0; i < concurrency; i++)
                             {
-                                threads[i].Join();
+                                threads[i].WaitCompleted();
                             }
                             
                             throw;
@@ -87,7 +88,7 @@ namespace compressor.Processor
                         // wait processors are all finshed (should already be)
                         for(int i = 0; i < concurrency; i++)
                         {
-                            threads[i].Join();
+                            threads[i].WaitCompleted();
                         }
                         // report exceptions if any
                         var errors = threadsErrors.Where(x => x != null);

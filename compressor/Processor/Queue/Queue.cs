@@ -1,6 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
+
+using compressor.Common.Collections;
 
 namespace compressor.Processor.Queue
 {
@@ -14,41 +15,30 @@ namespace compressor.Processor.Queue
                 throw new ArgumentException("Can't limit collection to less than 1 item", "maxCapacity");
             }
 
-            this.Implementation = new Custom.LimitableCollection<TBlock, ConcurrentQueue<TBlock>>(maxCapacity);
+            this.Implementation = new AsyncLimitableQueue<TBlock>(maxCapacity);
         }
 
-        readonly Custom.LimitableCollection<TBlock> Implementation;
+        readonly AsyncLimitableCollection<TBlock> Implementation;
 
         public void Dispose()
         {
             Implementation.Dispose();
         }
-        
-        public virtual bool TryAdd(TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
+
+        public virtual IAsyncResult BeginAdd(TBlock block, CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            return Implementation.TryAdd(item, millisecondsTimeout, cancellationToken);
+            return Implementation.BeginAdd(block, cancellationToken, asyncCallback, state);
         }
-        public virtual bool TryAdd(TBlock item, int millisecondsTimeout)
+        public virtual IAsyncResult BeginAdd(TBlock block, AsyncCallback asyncCallback = null, object state = null)
         {
-            return Implementation.TryAdd(item, millisecondsTimeout);
-        }
-        public bool TryAdd(TBlock item, CancellationToken cancellationToken)
-        {
-            return TryAdd(item, 0, cancellationToken);
-        }
-        public bool TryAdd(TBlock item)
-        {
-            return TryAdd(item, 0);
+            return Implementation.BeginAdd(block, asyncCallback, state);
         }
 
-        public bool IsCompleted
+        public void EndAdd(IAsyncResult addingAsyncResult)
         {
-            get
-            {
-                return Implementation.IsCompleted;
-            }
+            Implementation.EndAdd(addingAsyncResult);
         }
-        
+
         public bool IsAddingCompleted
         {
             get
@@ -62,34 +52,58 @@ namespace compressor.Processor.Queue
             Implementation.CompleteAdding();
         }
 
-        public bool TryTake(out TBlock item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public IAsyncResult BeginTake(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
         {
-            return Implementation.TryTake(out item, millisecondsTimeout, cancellationToken);
+            return Implementation.BeginTake(cancellationToken, asyncCallback, state);
         }
-        public bool TryTake(out TBlock item, int millisecondsTimeout)
+        public IAsyncResult BeginTake(AsyncCallback asyncCallback = null, object state = null)
         {
-            return Implementation.TryTake(out item, millisecondsTimeout);
-        }
-        public bool TryTake(out TBlock item, CancellationToken cancellationToken)
-        {
-            return TryTake(out item, 0, cancellationToken);
-        }
-        public bool TryTake(out TBlock item)
-        {
-            return TryTake(out item, 0);
+            return Implementation.BeginTake(asyncCallback, state);
         }
 
+        public TBlock EndTake(IAsyncResult takingAsyncResult)
+        {
+            return Implementation.EndTake(takingAsyncResult);
+        }
+
+        public int Count
+        {
+            get
+            {
+                return Implementation.Count;
+            }
+        }
+
+        public int MaxCapacity
+        {
+            get
+            {
+                return Implementation.MaxCapacity;
+            }
+        }
+
+        public bool IsCompleted
+        {
+            get
+            {
+                return Implementation.IsCompleted;
+            }
+        }
+        
         public bool IsPercentsFull(int percents)
         {
             if(percents < 0 || percents > 100)
+            {
                 throw new ArgumentException("percents");
-            if(Implementation.MaxCapacity < 1)
+            }
+            
+            if(MaxCapacity < 1)
             {
                 return false;
             }
             else
             {
-                return Implementation.Count >= ((percents * Implementation.MaxCapacity) / 100f);
+                return Count >= ((percents * MaxCapacity) / 100f);
             }
         }
 

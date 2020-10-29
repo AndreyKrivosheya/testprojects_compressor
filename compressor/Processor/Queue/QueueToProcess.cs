@@ -7,7 +7,7 @@ namespace compressor.Processor.Queue
     class QueueToProcess: Queue<BlockToProcess>
     {
         public QueueToProcess(int maxCapacity)
-            : base(Math.Max(1, maxCapacity - 1))
+            : base(maxCapacity)
         {
         }
     }

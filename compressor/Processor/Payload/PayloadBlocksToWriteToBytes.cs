@@ -10,17 +10,20 @@ namespace compressor.Processor.Payload
 {
     abstract class PayloadBlocksToWriteToBytes : Common.Payload.Payload
     {
-        public PayloadBlocksToWriteToBytes(CancellationTokenSource cancellationTokenSource, Func<List<BlockToWrite>, byte[]> converter)
+        public PayloadBlocksToWriteToBytes(CancellationTokenSource cancellationTokenSource, Func<IEnumerable<BlockToWrite>, byte[]> converter)
             : base(cancellationTokenSource)
         {
             this.Converter = converter;
         }
 
-        readonly Func<List<BlockToWrite>, byte[]> Converter;
+        readonly Func<IEnumerable<BlockToWrite>, byte[]> Converter;
 
         protected sealed override PayloadResult RunUnsafe(object parameter)
         {
-            return parameter.VerifyNotNullConvertAndRunUnsafe((List<BlockToWrite> blocks) => new PayloadResultContinuationPending(Converter(blocks)));
+            return parameter.VerifyNotNullConvertAnd(
+                (IEnumerable<BlockToWrite> blocksToConvert) => new PayloadResultContinuationPending(Converter(blocksToConvert)),
+                (BlockToWrite blockToConvert) => new PayloadResultContinuationPending(Converter(new [] { blockToConvert }))
+            );
         }
     }
 }

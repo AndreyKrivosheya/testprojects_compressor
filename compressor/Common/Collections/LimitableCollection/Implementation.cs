@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 
-namespace compressor.Processor.Queue.Custom.LimitableCollection
+namespace compressor.Common.Collections.LimitableCollection
 {
     interface Implementation<T> : IDisposable
     {

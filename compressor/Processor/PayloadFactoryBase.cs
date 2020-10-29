@@ -33,9 +33,10 @@ namespace compressor.Processor
 
             return FactoryBasic.WhenSucceeded(
                 FactoryBasic.WhenSucceeded(
-                    FactoryBasic.Chain(
+                    FactoryBasic.ChainRepeatable(
                         FactoryProcessor.QueueGetOneFromQueueToProcess(queueToProcess, queueOperationTimeoutMilliseconds),
                         CreateProcessPayload(),
+                        FactoryProcessor.BlockToWriteWaitAllPreviousBlocksProcessedAndAddedToQueueToWrite(0),
                         payloadTrackLastBlockToAddToQueueToWrite,
                         FactoryProcessor.QueueAddToQueueToWrite(queueToWrite, queueOperationTimeoutMilliseconds)
                     ),
@@ -45,8 +46,11 @@ namespace compressor.Processor
                     )
                 ),
                 FactoryBasic.Conditional(
-                    (BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last,
-                    FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite),
+                    (object parameter) => parameter != null ? parameter.ConvertAnd((BlockToWrite lastBlockAddedByThisPayload) => lastBlockAddedByThisPayload.Last) : false,
+                    FactoryBasic.Chain(
+                        FactoryProcessor.QueueCompleteAddingQueueToWrite(queueToWrite),
+                        FactoryBasic.Succeed()
+                    ),
                     FactoryBasic.Succeed()
                 )
             );
@@ -78,7 +82,7 @@ namespace compressor.Processor
             // read block bytes, convert to block for queue-to-process and add to queue-to-process
             // when reading completed: close queue-to-process for additions
             return FactoryBasic.WhenSucceeded(
-                FactoryBasic.Chain(
+                FactoryBasic.ChainRepeatable(
                     //  read block bytes and convert to block for queue-to-process
                     FactoryBasic.Chain(
                         CreateReadBlockBytesPayload(inputStream, TimeoutImmediate),
@@ -88,7 +92,10 @@ namespace compressor.Processor
                     FactoryProcessor.QueueAddToQueueToProcess(queueToProcess, TimeoutImmediate)
                 ),
                 // complete adding
-                FactoryProcessor.QueueCompleteAddingQueueToProcess(queueToProcess)
+                FactoryBasic.Chain(
+                    FactoryProcessor.QueueCompleteAddingQueueToProcess(queueToProcess),
+                    FactoryBasic.Succeed()
+                )
             );
         }
        

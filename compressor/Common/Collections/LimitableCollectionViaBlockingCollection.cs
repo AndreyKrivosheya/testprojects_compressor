@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
-namespace compressor.Processor.Queue.Custom
+namespace compressor.Common.Collections
 {
     class LimitableCollectionViaBlockingCollection<T> : LimitableCollection<T>
     {

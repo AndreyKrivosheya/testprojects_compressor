@@ -17,28 +17,35 @@ namespace compressor.Processor.Payload
         {
         }
 
-        static byte[] BlocksToBytes(List<BlockToWrite> blocks)
+        static byte[] BlocksToBytes(IEnumerable<BlockToWrite> blocks)
         {
-            if(blocks.Count == 1)
+            if(blocks.Any())
             {
-                var block = blocks[0];
-                return ArrayExtensions.Concat(BitConverter.GetBytes(block.Data.LongLength), block.Data);
+                if(blocks.CountIsExactly(1))
+                {
+                    var block = blocks.First();
+                    return ArrayExtensions.Concat(BitConverter.GetBytes(block.Data.LongLength), block.Data);
+                }
+                else
+                {
+                    using(var blocksStream = new MemoryStream((int)(blocks.Select(x => x.Data.LongLength + sizeof(long)).Sum())))
+                    {
+                        using(var blocksStreamWriter = new BinaryWriter(blocksStream))
+                        {
+                            foreach (var block in blocks)
+                            {
+                                blocksStreamWriter.Write(block.Data.LongLength);
+                                blocksStreamWriter.Write(block.Data);
+                            }
+                        }
+
+                        return blocksStream.ToArray();
+                    }
+                }
             }
             else
             {
-                using(var blocksStream = new MemoryStream((int)(blocks.Select(x => x.Data.LongLength + sizeof(long)).Sum())))
-                {
-                    using(var blocksStreamWriter = new BinaryWriter(blocksStream))
-                    {
-                        foreach (var block in blocks)
-                        {
-                            blocksStreamWriter.Write(block.Data.LongLength);
-                            blocksStreamWriter.Write(block.Data);
-                        }
-                    }
-
-                    return blocksStream.ToArray();
-                }
+                return new byte[] {};
             }
         }
     }
