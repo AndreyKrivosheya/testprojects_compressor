@@ -11,9 +11,9 @@ namespace compressor.Processor
 {
     abstract class ProcessorNotParallel: ProcessorParallel
     {
-        class SettingsProviderOverrideConcurrency: SettingsProvider
+        class SettingsProviderOverrideConcurrencyToOne: SettingsProvider
         {
-            public SettingsProviderOverrideConcurrency(SettingsProvider baseSettings)
+            public SettingsProviderOverrideConcurrencyToOne(SettingsProvider baseSettings)
             {
                 this.BaseSettings = baseSettings;
             }
@@ -30,7 +30,7 @@ namespace compressor.Processor
         } 
 
         public ProcessorNotParallel(SettingsProvider settings, Stream inputStream, Stream outputStream, Func<CancellationTokenSource, SettingsProvider, PayloadFactory> payloadFactory)
-            : base(new SettingsProviderOverrideConcurrency(settings), inputStream, outputStream, payloadFactory)
+            : base(new SettingsProviderOverrideConcurrencyToOne(settings), inputStream, outputStream, payloadFactory)
         {
         }
     }
