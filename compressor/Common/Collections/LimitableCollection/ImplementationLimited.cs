@@ -17,12 +17,12 @@ namespace compressor.Common.Collections.LimitableCollection
         readonly CancellationTokenSource ProducersCancellationTokenSource;
         readonly Semaphore ProducersSemaphore;
 
-        protected sealed override void DisposeCollection()
+        protected sealed override void DisposeImplementation()
         {
             ProducersCancellationTokenSource.Dispose();
             ProducersSemaphore.Close();
 
-            base.DisposeCollection();
+            base.DisposeImplementation();
         }
 
         readonly int MaxCapacityBackingField;

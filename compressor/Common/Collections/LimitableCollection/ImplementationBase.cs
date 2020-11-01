@@ -34,7 +34,7 @@ namespace compressor.Common.Collections.LimitableCollection
             }
         }
         
-        protected virtual void DisposeCollection()
+        protected virtual void DisposeImplementation()
         {
             ConsumersCancellationTokenSource.Dispose();
         }
@@ -43,7 +43,7 @@ namespace compressor.Common.Collections.LimitableCollection
             ThrowIfDisposed();
             try
             {
-                DisposeCollection();
+                DisposeImplementation();
             }
             finally
             {
@@ -161,9 +161,9 @@ namespace compressor.Common.Collections.LimitableCollection
             var awaiter = new SpinWait();
             while(true)
             {
-                var observerCurrentAddersCount = CurrentAddersCount;
+                var observedCurrentAddersCount = CurrentAddersCount;
                 // if concurrent CompleteAdding is in progress waiting for adders to finish ...
-                if((observerCurrentAddersCount & CurrentAddersCountAddingCompletedMask) != 0)
+                if((observedCurrentAddersCount & CurrentAddersCountAddingCompletedMask) == CurrentAddersCountAddingCompletedMask)
                 {
                     // ... then wait all adders are finished
                     awaiter.Reset();
@@ -176,7 +176,7 @@ namespace compressor.Common.Collections.LimitableCollection
                 else
                 {
                     // ... if this CompleteAdding actually completed adding
-                    if(Interlocked.CompareExchange(ref CurrentAddersCount, CurrentAddersCount | CurrentAddersCountAddingCompletedMask, observerCurrentAddersCount) == observerCurrentAddersCount)
+                    if(Interlocked.CompareExchange(ref CurrentAddersCount, CurrentAddersCount | CurrentAddersCountAddingCompletedMask, observedCurrentAddersCount) == observedCurrentAddersCount)
                     {
                         // ... ... then spin util all adders have finished
                         awaiter.Reset();
