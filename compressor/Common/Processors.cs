@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace compressor.Common
 {
@@ -7,37 +9,36 @@ namespace compressor.Common
     {
         public Processors()
         {
-            this.IAsyncResultsToProcessors = new Dictionary<IAsyncResult, Processor>();
-        }
-        public Processors(Processors another)
-        {
-            this.IAsyncResultsToProcessors = new Dictionary<IAsyncResult, Processor>(another.IAsyncResultsToProcessors);
+            this.IAsyncResultsToProcessors = new ConcurrentDictionary<IAsyncResult, Processor>();
         }
 
-        readonly Dictionary<IAsyncResult, Processor> IAsyncResultsToProcessors;
+        readonly IDictionary<IAsyncResult, Processor> IAsyncResultsToProcessors;
 
         public IAsyncResult BeginRunToBeCompleted(AsyncCallback asyncCallback = null, object state = null)
         {
             var asyncResultCompleted = new AsyncResult(asyncCallback, state);
             
-            lock(IAsyncResultsToProcessors)
-            {
-                IAsyncResultsToProcessors.Add(asyncResultCompleted, null);
-            }
+            IAsyncResultsToProcessors.Add(asyncResultCompleted, null);
 
             return asyncResultCompleted;
         }
 
         public void SetAllToBeCompletedWithoutProcessorAsCompleted(bool completedSynchroniously)
         {
-            lock(IAsyncResultsToProcessors)
+            foreach(var asyncResult in IAsyncResultsToProcessors.Keys)
             {
-                foreach(var pair in IAsyncResultsToProcessors)
+                Processor processor = null;
+                if(IAsyncResultsToProcessors.TryGetValue(asyncResult, out processor))
                 {
-                    if((!((AsyncResult)pair.Key).IsCompleted) && (pair.Value == null))
+                    if(processor == null && !asyncResult.IsCompleted)
                     {
-                        ((AsyncResult)pair.Key).SetAsCompleted(completedSynchroniously);
+                        ((AsyncResult)asyncResult).SetAsCompleted(completedSynchroniously);
                     }
+                }
+                else
+                {
+                    // key already removed (corresponding begin ended)
+                    continue;
                 }
             }
         }
@@ -52,15 +53,12 @@ namespace compressor.Common
 
         public IAsyncResult BeginRun(Action actionToRun, AsyncCallback asyncCallback = null, object state = null)
         {
-            lock(IAsyncResultsToProcessors)
-            {
-                var processor = new Processor(actionToRun);
-                var processorAsyncResult = processor.BeginRun(asyncCallback, state);
+            var processor = new Processor(actionToRun);
+            var processorAsyncResult = processor.BeginRun(asyncCallback, state);
 
-                IAsyncResultsToProcessors.Add(processorAsyncResult, processor);
+            IAsyncResultsToProcessors.Add(processorAsyncResult, processor);
 
-                return processorAsyncResult;
-            }
+            return processorAsyncResult;
         }
 
         public void EndRun(IAsyncResult asyncResult, Action onAsyncResultNotFromThisProcessors = null)
@@ -71,17 +69,14 @@ namespace compressor.Common
             }
 
             Processor processor;
-            lock(IAsyncResultsToProcessors)
+            if(!IAsyncResultsToProcessors.TryGetValue(asyncResult, out processor))
             {
-                if(!IAsyncResultsToProcessors.TryGetValue(asyncResult, out processor))
+                if(null != onAsyncResultNotFromThisProcessors)
                 {
-                    if(null != onAsyncResultNotFromThisProcessors)
-                    {
-                        onAsyncResultNotFromThisProcessors();
-                    }
-                    
-                    throw new InvalidOperationException("Unrecognized async result");
+                    onAsyncResultNotFromThisProcessors();
                 }
+                
+                throw new InvalidOperationException("Unrecognized async result");
             }
 
             try
@@ -105,10 +100,7 @@ namespace compressor.Common
             }
             finally
             {
-                lock(IAsyncResultsToProcessors)
-                {
-                    IAsyncResultsToProcessors.Remove(asyncResult);
-                }
+                IAsyncResultsToProcessors.Remove(asyncResult);
             }
         }
     }
@@ -117,23 +109,16 @@ namespace compressor.Common
     {
         public Processors()
         {
-            this.IAsyncResultsToProcessors = new Dictionary<IAsyncResult, Processor<T>>();
-        }
-        public Processors(Processors<T> another)
-        {
-            this.IAsyncResultsToProcessors = new Dictionary<IAsyncResult, Processor<T>>(another.IAsyncResultsToProcessors);
+            this.IAsyncResultsToProcessors = new ConcurrentDictionary<IAsyncResult, Processor<T>>();
         }
 
-        readonly Dictionary<IAsyncResult, Processor<T>> IAsyncResultsToProcessors;
+        readonly IDictionary<IAsyncResult, Processor<T>> IAsyncResultsToProcessors;
 
         public IAsyncResult BeginRunCompleted(T value, AsyncCallback asyncCallback = null, object state = null)
         {
             var asyncResultCompleted = new Common.AsyncResult<T>(asyncCallback, state);
             
-            lock(IAsyncResultsToProcessors)
-            {
-                IAsyncResultsToProcessors.Add(asyncResultCompleted, null);
-            }
+            IAsyncResultsToProcessors.Add(asyncResultCompleted, null);
 
             asyncResultCompleted.SetAsCompleted(value, true);
 
@@ -142,15 +127,12 @@ namespace compressor.Common
 
         public IAsyncResult BeginRun(Func<T> funcToRun, AsyncCallback asyncCallback = null, object state = null)
         {
-            lock(IAsyncResultsToProcessors)
-            {
-                var processor = new Processor<T>(funcToRun);
-                var processorAsyncResult = processor.BeginRun(asyncCallback, state);
+            var processor = new Processor<T>(funcToRun);
+            var processorAsyncResult = processor.BeginRun(asyncCallback, state);
 
-                IAsyncResultsToProcessors.Add(processorAsyncResult, processor);
+            IAsyncResultsToProcessors.Add(processorAsyncResult, processor);
 
-                return processorAsyncResult;
-            }
+            return processorAsyncResult;
         }
 
         public T EndRun(IAsyncResult asyncResult, Action onAsyncResultNotFromThisProcessors = null)
@@ -161,17 +143,14 @@ namespace compressor.Common
             }
 
             Processor<T> processor;
-            lock(IAsyncResultsToProcessors)
+            if(!IAsyncResultsToProcessors.TryGetValue(asyncResult, out processor))
             {
-                if(!IAsyncResultsToProcessors.TryGetValue(asyncResult, out processor))
+                if(null != onAsyncResultNotFromThisProcessors)
                 {
-                    if(null != onAsyncResultNotFromThisProcessors)
-                    {
-                        onAsyncResultNotFromThisProcessors();
-                    }
-                    
-                    throw new InvalidOperationException("Unrecognized async result");
+                    onAsyncResultNotFromThisProcessors();
                 }
+                
+                throw new InvalidOperationException("Unrecognized async result");
             }
 
             try
@@ -179,7 +158,7 @@ namespace compressor.Common
                 if(processor == null)
                 {
                     var asyncResultAsAsyncResultNoResult = asyncResult as Common.AsyncResult<T>;
-                    if(asyncResultAsAsyncResultNoResult != null && asyncResultAsAsyncResultNoResult.IsCompleted)
+                    if(asyncResultAsAsyncResultNoResult != null)
                     {
                         return asyncResultAsAsyncResultNoResult.EndInvoke();
                     }
@@ -195,10 +174,7 @@ namespace compressor.Common
             }
             finally
             {
-                lock(IAsyncResultsToProcessors)
-                {
-                    IAsyncResultsToProcessors.Remove(asyncResult);
-                }
+                IAsyncResultsToProcessors.Remove(asyncResult);
             }
         }
     }
