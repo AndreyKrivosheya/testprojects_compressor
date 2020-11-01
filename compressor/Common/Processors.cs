@@ -30,11 +30,11 @@ namespace compressor.Common
 
         public void SetAllToBeCompletedWithoutProcessorAsCompleted(bool completedSynchroniously)
         {
-            foreach(var pair in IAsyncResultsToProcessors)
+            lock(IAsyncResultsToProcessors)
             {
-                if(pair.Value == null)
+                foreach(var pair in IAsyncResultsToProcessors)
                 {
-                    if(!((AsyncResult)pair.Key).IsCompleted)
+                    if((!((AsyncResult)pair.Key).IsCompleted) && (pair.Value == null))
                     {
                         ((AsyncResult)pair.Key).SetAsCompleted(completedSynchroniously);
                     }

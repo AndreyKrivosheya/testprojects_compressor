@@ -28,48 +28,70 @@ namespace compressor.Processor.Queue
 
             //readonly int A;
 
-            AwaiterForAddedToQueue Previous = null;
+            volatile AwaiterForAddedToQueue Previous = null;
 
             public bool Last { get; private set; } = true;
 
-            bool ProcessedAndAddedToQueue = false;
+            // amount of threads currently trying to begin awaiting for added to queue to collection
+            protected volatile int CurrentBeginersForAwaitingForAddedToQueueCount = 0;
+            // mask to indicate that added to queue
+            protected readonly int CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask = unchecked((int)0x80000000);
 
             public void NotifyProcessedAndAddedToQueueToWrite()
             {
-                Common.Processors ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy;
-                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
+                var awaiter = new SpinWait();
+                while(true)
                 {
-                    Previous = null;
-                    ProcessedAndAddedToQueue = true;
-                    ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy = new Common.Processors(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite);
+                    var observedCurrentBeginersForAwaitingForAddedToQueueCount = CurrentBeginersForAwaitingForAddedToQueueCount;
+                    // if concurrent NotifyProcessedAndAddedToQueueToWrite() is in progress waiting for all beginers to await to finish
+                    if((observedCurrentBeginersForAwaitingForAddedToQueueCount & CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask) == CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask)
+                    {
+                        // ... then wait all beginers are finished
+                        awaiter.Reset();
+                        while((CurrentBeginersForAwaitingForAddedToQueueCount & ~CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask) != 0)
+                        {
+                            awaiter.SpinOnce();
+                        }
+                        return;
+                    }
+                    // if this NotifyProcessedAndAddedToQueueToWrite() actualy notified added
+                    if(Interlocked.CompareExchange(ref CurrentBeginersForAwaitingForAddedToQueueCount, observedCurrentBeginersForAwaitingForAddedToQueueCount | CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask, observedCurrentBeginersForAwaitingForAddedToQueueCount) == observedCurrentBeginersForAwaitingForAddedToQueueCount)
+                    {
+                        // ... then spin until all beginers are finished
+                        awaiter.Reset();
+                        while((CurrentBeginersForAwaitingForAddedToQueueCount & ~CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask) != 0)
+                        {
+                            awaiter.SpinOnce();
+                        }
+
+                        Previous = null;
+                        ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.SetAllToBeCompletedWithoutProcessorAsCompleted(false);
+                        return;
+                    }
+                    awaiter.SpinOnce();
                 }
-                // notify each of the async awaiters
-                ProcessorsWaitThisBlockProcessedAndAddedToQueueToWriteCopy.SetAllToBeCompletedWithoutProcessorAsCompleted(false);
             }
 
             readonly Common.Processors ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite = new Common.Processors();
 
             public IAsyncResult BeginWaitPreviousBlockProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
-                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
+                var previous = Previous;
+                if(previous == null)
                 {
-                    var previous = Previous;
-                    if(previous == null)
-                    {
-                        return ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
-                    }
-                    else
-                    {
-                        var asyncResultToBeCompleted = ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
-                        // spin off wait for previsous is notified added
-                        previous.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback:
-                           (ar) => {
-                               previous.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
-                               ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
-                           });
-                        
-                        return asyncResultToBeCompleted;
-                    }
+                    return ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
+                }
+                else
+                {
+                    var asyncResultToBeCompleted = ProcessorsWaitPreviousBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
+                    // spin off wait for previsous is notified added
+                    previous.BeginWaitThisBlockProcessedAndAddedToQueueToWrite(cancellationToken, asyncCallback:
+                        (ar) => {
+                            previous.EndWaitThisBlockProcessedAndAddedToQueueToWrite(ar);
+                            ((Common.AsyncResult)asyncResultToBeCompleted).SetAsCompleted(false);
+                        });
+                    
+                    return asyncResultToBeCompleted;
                 }
             }
             public IAsyncResult BeginWaitPreviousBlockProcessedAndAddedToQueueToWrite(AsyncCallback asyncCallback = null, object state = null)
@@ -90,16 +112,33 @@ namespace compressor.Processor.Queue
             
             public IAsyncResult BeginWaitThisBlockProcessedAndAddedToQueueToWrite(CancellationToken cancellationToken, AsyncCallback asyncCallback = null, object state = null)
             {
-                lock(ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite)
+                var awaiter = new SpinWait();
+                while(true)
                 {
-                    if(ProcessedAndAddedToQueue)
+                    var observedCurrentBeginersForAwaitingForAddedToQueueCount = CurrentBeginersForAwaitingForAddedToQueueCount;
+                    // if already notified added to queue
+                    if((observedCurrentBeginersForAwaitingForAddedToQueueCount & CurrentBeginersForAwaitingForAddedToQueueCountAddedToQueueMask) != 0)
                     {
                         return ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.BeginRunCompleted(asyncCallback, state);
                     }
-                    else
+                    // if this BeginWaitThisBlockProcessedAndAddedToQueueToWrite actually begins wait
+                    if(Interlocked.CompareExchange(ref CurrentBeginersForAwaitingForAddedToQueueCount, observedCurrentBeginersForAwaitingForAddedToQueueCount + 1, observedCurrentBeginersForAwaitingForAddedToQueueCount) == observedCurrentBeginersForAwaitingForAddedToQueueCount)
                     {
-                        return ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
+                        try
+                        {
+                            if(observedCurrentBeginersForAwaitingForAddedToQueueCount + 1 == ~CurrentBeginersForAwaitingForAddedToQueueCount)
+                            {
+                                throw new NotSupportedException("Concurrent beginers for awating to be added to queue amount exceeded");
+                            }
+
+                            return ProcessorsWaitThisBlockProcessedAndAddedToQueueToWrite.BeginRunToBeCompleted(asyncCallback, state);
+                        }
+                        finally
+                        {
+                            Interlocked.Decrement(ref CurrentBeginersForAwaitingForAddedToQueueCount);
+                        }
                     }
+                    awaiter.SpinOnce();
                 }
             }
             public IAsyncResult BeginWaitThisBlockProcessedAndAddedToQueueToWrite(AsyncCallback asyncCallback = null, object state = null)
